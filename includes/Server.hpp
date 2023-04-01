@@ -10,11 +10,7 @@
 # include <iostream>
 # include <sstream>
 # include <string>
-<<<<<<< HEAD
 # include <algorithm>
-=======
-# include <vector>
->>>>>>> 33586e7b72c48a753f34d9c5a40c98ca902b1ec6
 # include <sstream>
 # include <unistd.h>
 # include <Channel.hpp>

@@ -106,26 +106,21 @@ bool Server::_nick(std::string &cmd) {
 			send(_current_client->first, "432", 3, 0);
 			return false;
 		}
-<<<<<<< HEAD
 	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (it->second.nickname == res[1]) {
-=======
-	}
-	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		if (it->second.nickname == res[1])
 		{
 			res[1] = res[1].substr(0, res[1].length() - 2) + to_string(_current_client->first);
->>>>>>> 33586e7b72c48a753f34d9c5a40c98ca902b1ec6
 			send(_current_client->first, "433", 3, 0);
 			return false;
 		}
-	std::string nickmsg = _current_client->second.nickname + " NICK " + res[1];
+	}
+	std::string nickmsg = _current_client->second.nickname + " NICK " + res[1] + "\r\n";
 
 	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		send(it->first, nickmsg.c_str(), nickmsg.length(), 0);
 	_current_client->second.nickname = res[1];
-	std::cout << "index " << _current_client->first << " value " << _current_client->second.nickname << std::endl; 
+	// std::cout << "index " << _current_client->first << " value " << _current_client->second.nickname << std::endl; 
 	return true;
 }
 
@@ -165,9 +160,8 @@ bool	Server::_join(std::string &cmd) {
 	for (unsigned int i = 0; i < names.size(); i++) {
 		std::vector<Channel>::iterator it;
 		for (it = _channels.begin(); it != _channels.end(); ++it) {
-			if (it->name == names[i]) {
+			if (it->name == names[i])
 				break;
-        	}
 			if (it == _channels.end()) {
         		Channel newChannel(names[i]);
 				_channels.push_back(newChannel);
@@ -198,13 +192,7 @@ int Server::_commandFind(std::string &cmd) const {
 
 	for (unsigned int i = 0; i < NB_OF_CMDS; i++) {
 		res = cmd.substr(0, _cmd_str[i].length());
-<<<<<<< HEAD
 		if (res == _cmd_str[i] && (!cmd[res.length()] || (cmd[res.length()] == '\n' || cmd[res.length()] == ' ' || cmd[res.length()] == '\r'))) {
-=======
-
-		if (res == _cmd_str[i] && (!cmd[res.length()] || (cmd[res.length()] == '\n' || cmd[res.length()] == ' ' || cmd[res.length()] == '\r')))
-		{
->>>>>>> 33586e7b72c48a753f34d9c5a40c98ca902b1ec6
 			if (_current_client->second.is_register() == -1 && res == "CAP LS")
 				_current_client->second.cmd_register[0] = true;
 			else if (_current_client->second.is_register() == -1 && res == "NICK")
@@ -217,33 +205,21 @@ int Server::_commandFind(std::string &cmd) const {
 			return i;
 		}
 	}
-	std::string error = "Error: command not found: " + cmd;
+	std::string error = "Error: command not found: " + cmd + "\n";
 	send(_current_client->first, error.c_str(), error.length(), 0);
 	return -1;
 }
 
-<<<<<<< HEAD
-void Server::_commandServer(std::vector<std::string>  &tabstr) {
+void Server::_commandServer(std::vector<std::string>  &tabstr)
+{	
 	for (unsigned int i = 0; i < tabstr.size(); i++) {
 		int command = _commandFind(tabstr[i]);
 		if (command != -1)
 			((this->*_cmd_list[command])(tabstr[i]));
 		if (_current_client->second.is_register() == 1) {
-			std::string res =  _current_client->second.realname + " :Welcome to the IRC Network, " + _current_client->second.nickname + "!" + _current_client->second.username + "@" + _current_client->second.hostname + "\n";
-			send(_current_client->first, "001\n", 4, 0);
-=======
-void Server::_commandServer(std::vector<std::string>  &tabstr)
-{	
-	for (unsigned int i = 0; i < tabstr.size(); i++)
-	{
-		int command = _commandFind(tabstr[i]);
-		if (command != -1)
-			((this->*_cmd_list[command])(tabstr[i]));
-		if (_current_client->second.is_register() == 1)
-		{
-			std::cout << "DEBUG " << std::endl;
-			std::string res =  _current_client->second.realname + " :Welcome to the IRC Network, \n"+ _current_client->second.nickname + "!" + _current_client->second.username + "@" + _current_client->second.hostname + "\n";
->>>>>>> 33586e7b72c48a753f34d9c5a40c98ca902b1ec6
+			send(_current_client->first, "001\r\n", 5, 0);
+			// std::cout << "DEBUG " << std::endl;
+			std::string res =  _current_client->second.realname + " :Welcome to the IRC Network, "+ _current_client->second.nickname + "!" + _current_client->second.username + "@" + _current_client->second.hostname + "\r\n";
 			send(_current_client->first, res.c_str(), res.length(), 0);
 			_current_client->second.cmd_register[3] = true;
 		}
@@ -298,7 +274,7 @@ bool	Server::event(void) {
 				_clients.insert(std::make_pair(client_fd, Client(client_fd)));
 				_client_count++;
 				std::cout << "Client " << client_fd << " connected" << std::endl;
-				send(client_fd, "001\r\n", 5, 0);
+				// send(client_fd, "001\r\n", 5, 0);
 			}
 		}
 		_dataRecv();

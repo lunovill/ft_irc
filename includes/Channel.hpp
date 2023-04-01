@@ -17,6 +17,3 @@ class   Channel {
 
 		std::vector<Client> clients;
 };
-
-
-
