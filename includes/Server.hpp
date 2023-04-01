@@ -7,8 +7,10 @@
 # include <fcntl.h>
 # include <netinet/in.h>
 # include <map>
-# include <vector>
+# include <iostream>
+# include <sstream>
 # include <string>
+# include <vector>
 # include <sstream>
 # include <unistd.h>
 # include <Client.hpp>
@@ -62,7 +64,8 @@ class Server
 };
 
 template<typename T>
-std::vector<std::string> ft_split(T msg, char c = ' ') {
+std::vector<std::string> ft_split(T msg, char c = ' ')
+{
 
 	std::string line;
     std::vector<std::string> vec;
@@ -72,4 +75,13 @@ std::vector<std::string> ft_split(T msg, char c = ' ') {
         if (!line.empty())
             vec.push_back(line);
     return vec;
+}
+
+template<typename T>
+std::string	to_string(T arg)
+{
+	std::stringstream ss;
+	ss << arg;
+	std::string str = ss.str();
+	return str;
 }
