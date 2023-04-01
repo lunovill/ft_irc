@@ -2,7 +2,7 @@ NAME = irc
 
 OBJ_DIR = objs
 
-SRCS = Client.cpp Server.cpp main.cpp
+SRCS = Client.cpp Server.cpp main.cpp Channel.cpp
 
 
 SRCS_DIR = $(shell find srcs -type d)
