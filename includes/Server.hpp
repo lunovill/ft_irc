@@ -1,89 +1,46 @@
 #pragma once
-# include <cerrno>
-# include <cstdlib>
-# include <sys/types.h>
-# include <sys/socket.h>
-# include <cstring>
-# include <fcntl.h>
-# include <netinet/in.h>
-# include <map>
-# include <iostream>
-# include <sstream>
-# include <string>
-# include <algorithm>
-# include <sstream>
-# include <unistd.h>
-# include <Channel.hpp>
 
-# define MAX_CLIENT 1024
+# include <unistd.h>
+# include <vector>
+
+# include "Channel.hpp"
+# include "Irc.hpp"
+# include "Socket.hpp"
+
 # define BUFFER_SIZE 512
 
-enum CMD {
-    NICK,
-    USER,
-    CAP_LS,
-	PRIVMSG,
-	NB_OF_CMDS
-};
+class	Server {
 
-enum CHANGE {
-    NICKNAME,
-    USERNAME,
-    HOSTNAME,
-	REALNAME
-};
-
-class Server
-{
-	private :
-
-		int									_port;
-		int									_sockfd;
-		int									_client_count;
-		sockaddr_in							_server_addr;
-		fd_set								_readFds;
-		std::map<int, Client>::iterator		_current_client;
-		std::map<int, Client>				_clients;
-		std::string							_password;
-		std::string							_servername;
-		std::string							_cmd_str[NB_OF_CMDS];
-		std::vector<Channel>				_channels;
-	
-		/*
-		std::map<Channel, std::map<int, Client>> _clientsPerChannel;
-		
-		bool modifyClientInfo(int fd, int infoToChange, std::string newInfo) {
-			//check si le fd peut ne pas etre dans la map
-			switch
-
-			map[fd].
-		}
-		*/
-		
-		bool	(Server::*_cmd_list[NB_OF_CMDS])(std::string &);
-		bool	_join(std::string &cmd);
-		bool	_initSock(void);
-		bool	_initBind(void);
-		bool	_initListen(void) const;
-		bool	_acceptClient(int &clientFd) const;
-		bool	_nick(std::string &cdm);
-		bool	_user(std::string &cdm);
-		bool	_privmsg(std::string &cdm);
-		bool	_capls(std::string &cdm);
-		int		_commandFind(std::string &cmd) const;
-		void	_commandServer(std::vector<std::string>  &tabstr);
-		void	_dataRecv(void);
-		
-	public :
+	public:
 
 		Server(int port, std::string password);
 		~Server(void);
 
-		bool	event(void);
+		void	run(void);
+
+	private:
+
+		int			_port;
+		std::string	_password;
+		Socket		_socket;
+		fd_set		_readFds;
+		Irc			_command;
+		std::map<int, Client *>	_clients;
+		std::vector<Channel>	_channels;
+
+		void	_acceptClient(int &clientFd) const;
+		void	_commandRun(std::map<int, Client *>::iterator &client, std::vector<std::string>  &inputs);
+		void	_dataRecv(void);
+
 };
 
+
+// Voir si on le met dans un fichier Utils.{hpp/cpp}
+
+#include <sstream>
+
 template<typename T>
-std::vector<std::string> ft_split(T msg, char c = ' ')
+std::vector<std::string> to_split(T msg, char c = ' ')
 {
 
 	std::string line;
@@ -96,11 +53,14 @@ std::vector<std::string> ft_split(T msg, char c = ' ')
     return vec;
 }
 
-template<typename T>
-std::string	to_string(T arg)
-{
-	std::stringstream ss;
-	ss << arg;
-	std::string str = ss.str();
-	return str;
-}
+// Cette fontion va servir pour le RPL_CREATED(nick, datetime), c'est le 003
+// #include <time>
+
+// std::string const	getTime() {
+
+// 	time_t	t(time(NULL));
+// 	std::string	res(ctime(&t));
+// 	res.erase(res.end() - 1);
+	
+// 	return (res);
+// }
