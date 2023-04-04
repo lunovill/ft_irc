@@ -1,10 +1,11 @@
 #include "Server.hpp"
+#include "Irc.hpp"
 
 /********************************************************************************/
 /* ------------------------------- CONSTRUCTOR -------------------------------- */
 /********************************************************************************/
 
-Server::Server(int port, std::string password) : _port(port), _password(password), _socket(port) { return; }
+Server::Server(int port, std::string password) : _port(port), _password(password), _socket(port), _command(this) { return; }
 
 /********************************************************************************/
 /* -------------------------------- DESTRUCTOR -------------------------------- */
@@ -31,16 +32,14 @@ void	Server::_acceptClient(int &clientFd) const {
 void Server::_commandRun(std::map<int, Client *>::iterator &client, std::vector<std::string>  &inputs)
 {	
 	for (unsigned int i = 0; i < inputs.size(); i++) {
-		client->second->input = inputs[i];
+		client->second->input = inputs[i].substr(0, inputs[i].length() - 1);
 		Irc::CommandFt cmd = _command.find(client->second->input);
 		if (cmd) (_command.*cmd)(client->first, *client->second);
-		else {
-			std::string error = std::string("Error: command not found: ") + inputs[i] + '\n';
-			send(client->first, error.c_str(), error.length(), 0);
-		}
+		else client->second->output += ERR_UNKNOWNCOMMAND(client->second->nickname, client->second->input);
 		// Verifier si le client est resgister (il faudre modifier sont status lors de l'utilisation de USER PASS et NICK)
 		// Envoyer les RPL de bienvenue, il se toruve dans l'include de Irc 
 	}
+	send(client->first, client->second->output.c_str(), client->second->output.length(), 0);
 }
 
 void Server::_dataRecv(void) {
@@ -64,7 +63,7 @@ void Server::_dataRecv(void) {
 				// for (std::map<int, Client *>::iterator it2 = _clients.begin(); it2 != _clients.end(); ++it2)
 				// 	if (it2->first != it->first)
 				// 		send(it2->first, buff, bytes_received, 0);
-				// ++it;
+				++it;
 			}
 		} else {
 			++it;
@@ -77,7 +76,6 @@ void	Server::run(void) {
 	int		client_fd;
 	int		max_fd;
 
-std::cerr << "DEBUG : " << _socket.getFd() << std::endl;
 	while(true) {
 		FD_ZERO(&_readFds);
 		FD_SET(_socket.getFd(), &_readFds);
@@ -113,5 +111,11 @@ std::cerr << "DEBUG : " << _socket.getFd() << std::endl;
 	std::cout << "Server closed" << std::endl;
 	return;
 }
+
+/********************************************************************************/
+/* --------------------------------- ACCESSOR --------------------------------- */
+/********************************************************************************/
+
+std::map<int, Client *>	Server::getClients(void) const { return _clients; }
 
 /********************************************************************************/

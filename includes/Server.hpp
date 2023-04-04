@@ -3,11 +3,12 @@
 # include <unistd.h>
 # include <vector>
 
-# include "Channel.hpp"
 # include "Irc.hpp"
 # include "Socket.hpp"
 
 # define BUFFER_SIZE 512
+
+class Irc;
 
 class	Server {
 
@@ -17,6 +18,8 @@ class	Server {
 		~Server(void);
 
 		void	run(void);
+
+		std::map<int, Client *>	getClients(void) const;
 
 	private:
 
@@ -44,13 +47,13 @@ std::vector<std::string> to_split(T msg, char c = ' ')
 {
 
 	std::string line;
-    std::vector<std::string> vec;
-    std::istringstream stream(msg);
+	std::vector<std::string> vec;
+	std::istringstream stream(msg);
 
-    while (std::getline(stream, line, c))
-        if (!line.empty())
-            vec.push_back(line);
-    return vec;
+	while (std::getline(stream, line, c))
+		if (!line.empty())
+			vec.push_back(line);
+	return vec;
 }
 
 // Cette fontion va servir pour le RPL_CREATED(nick, datetime), c'est le 003

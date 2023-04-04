@@ -1,4 +1,5 @@
 #pragma once
+
 # include <iostream>
 
 class	Client {
@@ -13,6 +14,7 @@ class	Client {
 		std::string	realname;
 		std::string	servername;
 		std::string input;
+		std::string output;
 
 	private:
 

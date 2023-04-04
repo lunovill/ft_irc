@@ -1,4 +1,5 @@
 #include "Irc.hpp"
+#include "Server.hpp"
 
 const	Irc::commands Irc::cmdList[] = {
 	{"NICK", &Irc::NICK},
@@ -21,7 +22,7 @@ const	Irc::commands Irc::cmdList[] = {
 /* ------------------------------- CONSTRUCTOR -------------------------------- */
 /********************************************************************************/
 
-Irc::Irc(void) { return; }
+Irc::Irc(Server *server) : _server(server) { return; }
 
 /********************************************************************************/
 /* -------------------------------- DESTRUCTOR -------------------------------- */
@@ -35,8 +36,6 @@ Irc::~Irc(void) { return; }
 
 
 Irc::CommandFt	Irc::find(std::string const &input) const {
-		std::string res;
-
 	for (unsigned int i = 0; !Irc::cmdList[i].name.empty(); ++i) {
 		    std::string cmdName(Irc::cmdList[i].name);
         if (input.compare(0, cmdName.length(), cmdName) == 0 && (input[cmdName.length()] == ' ' || input[cmdName.length()] == '\r' || input[cmdName.length()] == '\n')) {
@@ -49,45 +48,30 @@ Irc::CommandFt	Irc::find(std::string const &input) const {
 
 // A faire en priorite
 
-void	Irc::NICK(int fd, Client &client) { return; }
-
-// Voici l'ancienne commande nick, a tradiure
-// Utilise CLRF au lien de "\r\n" (c'est une convention)
-// Ce que le client envoie se trouve dans sa classe, c'est la varible input
-
-// bool Server::_nick(std::string &cmd) {
-// 	std::vector<std::string> res = ft_split(cmd);
-// 	res[1] = res[1].substr(0, res[1].length() - 1);
-
-// 	if (res.size() != 2)
-// 		return false;
-// 	if (res.size() == 1) {
-// 		send(_current_client->first, "431", 3, 0);
-// 		return false;
-// 	}
-// 	for (std::string::iterator it = res[1].begin(); it != res[1].end(); ++it)
-// 		if (!isdigit(*it) && !isalpha(*it)) {
-// 			send(_current_client->first, "432", 3, 0);
-// 			return false;
-// 		}
-// 	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-// 	{
-// 		if (it->second.nickname == res[1])
-// 		{
-// 			res[1] = res[1].substr(0, res[1].length() - 2) + to_string(_current_client->first);
-// 			send(_current_client->first, "433", 3, 0);
-// 			return false;
-// 		}
-// 	}
-// 	std::string nickmsg = _current_client->second.nickname + " NICK " + res[1] + "\r\n";
-
-// 	// for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-// 	send(_current_client->first, nickmsg.c_str(), nickmsg.length(), 0);
-// 	_current_client->second.nickname = res[1];
-// 	// std::cout << "index " << _current_client->first << " value " << _current_client->second.nickname << std::endl; 
-// 	return true;
-// }
-
+void	Irc::NICK(int fd, Client &client) {
+	std::string	nickname = client.input.substr(5, client.input.length() - 5);
+	if (nickname.empty()) {
+		client.output += ERR_NONICKNAMEGIVEN(client.nickname);
+		// send(fd, output.c_str(), output.length(), 0);
+		return;
+	}
+	for (unsigned int i = 0; i < nickname.length(); ++i)
+		if (!std::isalnum(nickname[i]) && nickname[i] != '-' && nickname[i] != '_') {
+			client.output += ERR_ERRONEUSNICKNAME(client.nickname, nickname);
+			// send(fd, output.c_str(), output.length(), 0);
+			return;
+		}
+	std::map<int, Client *> clients = _server->getClients();
+	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		if (it->second->nickname == nickname) {
+			client.output += ERR_NICKNAMEINUSE(client.nickname, nickname);
+			// send(fd, output.c_str(), output.length(), 0);
+			return;
+		}}
+	client.nickname = nickname;
+	std::cout << "Client " << fd << " changed nickname to " << nickname << std::endl;
+	return;
+}
 
 void	Irc::PASS(int fd, Client &client) { return; }
 void	Irc::USER(int fd, Client &client) { return; }
