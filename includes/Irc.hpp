@@ -1,5 +1,6 @@
 #pragma once
 
+# include <string>
 # include "Channel.hpp"
 
 # define CLRF						"\r\n"
@@ -7,7 +8,7 @@
 # define SERVER_HOSTNAME			std::string(SERVER_NAME) + ".fr"
 # define SERVER_VERSION				"v4.2"
 # define CHANNEL_MODES				"iklnot"
-# define USER_MODE					"io"
+# define USER_MODES					"io"
 # define RPL_PREFIX(code, nick)		std::string(":" + SERVER_HOSTNAME + " " + code + " " + nick)
 
 # define RPL_WELCOME(nick, user, host)			RPL_PREFIX("001", nick) + " :Welcome to the " + SERVER_NAME + " Network, " + nick + "!" + user + "@" + host + CLRF

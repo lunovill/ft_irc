@@ -17,19 +17,22 @@ class	Server {
 		Server(int port, std::string password);
 		~Server(void);
 
+		std::vector<Channel *>::iterator	addChannel(Channel &channel); // a fare
 		void	run(void);
 
 		std::map<int, Client *>	getClients(void) const;
+		std::vector<Channel *> getChannel(void) const; // a faire
+		const std::string getPass() const;
 
 	private:
 
 		int			_port;
-		std::string	_password;
+		const std::string	_password;
 		Socket		_socket;
 		fd_set		_readFds;
 		Irc			_command;
 		std::map<int, Client *>	_clients;
-		std::vector<Channel>	_channels;
+		std::vector<Channel*>	_channels;
 
 		void	_acceptClient(int &clientFd) const;
 		void	_commandRun(std::map<int, Client *>::iterator &client, std::vector<std::string>  &inputs);
@@ -56,14 +59,4 @@ std::vector<std::string> to_split(T msg, char c = ' ')
 	return vec;
 }
 
-// Cette fontion va servir pour le RPL_CREATED(nick, datetime), c'est le 003
-// #include <time>
-
-// std::string const	getTime() {
-
-// 	time_t	t(time(NULL));
-// 	std::string	res(ctime(&t));
-// 	res.erase(res.end() - 1);
-	
-// 	return (res);
-// }
+std::string const	getTime();

@@ -39,6 +39,13 @@ void Server::_commandRun(std::map<int, Client *>::iterator &client, std::vector<
 		// Verifier si le client est resgister (il faudre modifier sont status lors de l'utilisation de USER PASS et NICK)
 		// Envoyer les RPL de bienvenue, il se toruve dans l'include de Irc 
 	}
+	if (client->second->isRegister()) {
+		client->second->output += RPL_WELCOME(client->second->nickname, client->second->username, client->second->hostname);
+		client->second->output += RPL_YOURHOST(client->second->nickname);
+		client->second->output += RPL_CREATED(client->second->nickname, getTime());
+		client->second->output += RPL_MYINFO(client->second->nickname);
+
+	}
 	send(client->first, client->second->output.c_str(), client->second->output.length(), 0);
 }
 
@@ -106,6 +113,8 @@ void	Server::run(void) {
 		close(it->first);
 		delete it->second;
 	}
+	for (std::vector<Channel *>::iterator it = _channels.end(); it != _channels.end(); ++it)
+		delete *it;
 	_clients.clear();
 	close(_socket.getFd());
 	std::cout << "Server closed" << std::endl;
@@ -118,4 +127,17 @@ void	Server::run(void) {
 
 std::map<int, Client *>	Server::getClients(void) const { return _clients; }
 
+const std::string Server::getPass() const { return _password; }
+
 /********************************************************************************/
+
+#include <ctime>
+
+std::string const	getTime() {
+
+	time_t	t(time(NULL));
+	std::string	res(ctime(&t));
+	res.erase(res.end() - 1);
+	
+	return (res);
+}
