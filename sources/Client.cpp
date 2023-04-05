@@ -25,7 +25,7 @@ Client::~Client(void) { return; }
 bool	Client::isRegister(void) {
 	if (cmdRegister[3] != true)
 		if (cmdRegister[0] == true && cmdRegister[1] == true && cmdRegister[2] == true) {
-			cmdRegister[3] = true;
+			// cmdRegister[3] = true;
 			return true;
 		}
 	return false;

@@ -42,9 +42,12 @@ void Server::_commandRun(std::map<int, Client *>::iterator &client, std::vector<
 		client->second->output += RPL_YOURHOST(client->second->nickname);
 		client->second->output += RPL_CREATED(client->second->nickname, getTime());
 		client->second->output += RPL_MYINFO(client->second->nickname);
+		client->second->cmdRegister[3] = true;
 
 	}
 	send(client->first, client->second->output.c_str(), client->second->output.length(), 0);
+	std::cout << client->second->output << std::endl;
+	client->second->output.erase();
 }
 
 void Server::_dataRecv(void) {

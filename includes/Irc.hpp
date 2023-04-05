@@ -17,8 +17,9 @@
 # define RPL_YOURHOST(nick)						RPL_PREFIX("002", nick) + " :Your host is " + SERVER_HOSTNAME + ", running version " + SERVER_VERSION + CLRF
 # define RPL_CREATED(nick, datetime)			RPL_PREFIX("003", nick) + " :This server was created " + datetime + CLRF
 # define RPL_MYINFO(nick)						RPL_PREFIX("004", nick) + " " + SERVER_HOSTNAME + " " + SERVER_VERSION + " " + USER_MODES + " " + CHANNEL_MODES + CLRF
+#define RPL_UMODEIS(nick, modes)				RPL_PREFIX("221", nick) + " :" + modes + CLRF
 
-#define ERR_UNKNOWNCOMMAND(nick, command)		RPL_PREFIX("421", nick) + " :" + command + " :Unknown command" + CLRF
+#define ERR_UNKNOWNCOMMAND(nick, command)		RPL_PREFIX("421", nick) + ":" + command + " :Unknown command" + CLRF
 
 //MODE
 #define ERR_CHANOPRIVSNEEDED (channel)          RPL_PREFIX("482", "") + " " + channel + " :You're not channel operator" + CLRF
@@ -27,7 +28,6 @@
 #define ERR_NOSUCHNICK(target)					RPL_PREFIX("401", "") + " " + target + "  :No such nick/channel" + CLRF
 #define ERR_NOSUCHCHANNEL(target)				RPL_PREFIX("403", "") + " :" + target + " :No such channel" + CLRF
 #define ERR_USERSDONTMATCH(target)              RPL_PREFIX("502", "") + " " + target + " :Cant change mode for other users" +  CLRF
-#define RPL_UMODEIS(username, mode)             RPL_PREFIX("221", "") + username + " " + mode + CLRF
 
 //	NICK
 # define ERR_NONICKNAMEGIVEN(nick)				RPL_PREFIX("431", nick) + " :No nickname given" + CLRF

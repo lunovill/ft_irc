@@ -9,8 +9,8 @@ const	Irc::commands Irc::cmdList[] = {
 	// {"JOIN", &JOIN},
 	// {"LIST", &LIST},
 	// {"EXIT", &EXIT},
-	{"PING", &Irc::PING},
-	{"PONG", &Irc::PONG},
+	{"PING", &Irc::PONG},
+	{"PONG", &Irc::PING},
 	// {"PRIVMSG", &PRIVMSG},
 	// {"PART", &PART},
 	// {"TOPIC", &TOPIC},
@@ -64,7 +64,6 @@ void Irc::PASS(int fd, Client &client)
 	}
 	if (client.cmdRegister[0] != true)
 		client.cmdRegister[0] = true;
-	std::cout << "Password is correct" << std::endl;
 	return;
 }
 
@@ -83,15 +82,11 @@ void	Irc::NICK(int fd, Client &client) {
 	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
 		if (it->second->nickname == nickname) {
 			client.output += ERR_NICKNAMEINUSE(client.nickname, nickname);
-			std::stringstream index;
-			index << (fd - 4);
-			nickname += index.str();
-			break;
+			return;
 		}
 	client.nickname = nickname;
 	if (client.cmdRegister[1] != true)
 		client.cmdRegister[1] = true;	
-	std::cout << "Client " << fd << " changed nickname to " << nickname << std::endl;
 	return;
 }
 
@@ -169,7 +164,6 @@ void Irc::USER(int fd, Client &client)
 	client.realname = parametre[4] + " " + parametre[5];
 	if (client.cmdRegister[2] != true)
 		client.cmdRegister[2] = true;
-	std::cout << "nickname " << client.nickname << " username " << client.username << " hostname " << client.hostname << " realname " << client.realname << std::endl;
 }
 
 
@@ -272,8 +266,7 @@ void	Irc::MODE(int fd, Client &client)
 		if (target[0] == '#')
 			client.output += RPL_CHANNELMODEIS(target, mode);
 		else 
-			client.output += RPL_UMODEIS(client.username, mode);
-		std::cout << std::endl << client.output << std::endl;
+			client.output += RPL_UMODEIS(client.nickname, mode);
 		return ;
 	// }
 	// else
