@@ -113,8 +113,8 @@ void	Server::run(void) {
 		close(it->first);
 		delete it->second;
 	}
-	for (std::vector<Channel *>::iterator it = _channels.end(); it != _channels.end(); ++it)
-		delete *it;
+	// for (std::vector<Channel *>::iterator it = _channels.end(); it != _channels.end(); ++it)
+	// 	delete *it;
 	_clients.clear();
 	close(_socket.getFd());
 	std::cout << "Server closed" << std::endl;

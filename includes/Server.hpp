@@ -17,11 +17,11 @@ class	Server {
 		Server(int port, std::string password);
 		~Server(void);
 
-		std::vector<Channel *>::iterator	addChannel(Channel &channel); // a fare
+		// std::vector<Channel *>::iterator	addChannel(Channel &channel); // a fare
 		void	run(void);
 
 		std::map<int, Client *>	getClients(void) const;
-		std::vector<Channel *> getChannel(void) const; // a faire
+		// std::vector<Channel *> getChannel(void) const; // a faire
 		const std::string getPass() const;
 
 	private:
@@ -32,7 +32,7 @@ class	Server {
 		fd_set		_readFds;
 		Irc			_command;
 		std::map<int, Client *>	_clients;
-		std::vector<Channel*>	_channels;
+		// std::vector<Channel*>	_channels;
 
 		void	_acceptClient(int &clientFd) const;
 		void	_commandRun(std::map<int, Client *>::iterator &client, std::vector<std::string>  &inputs);
