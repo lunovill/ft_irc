@@ -15,3 +15,7 @@ Channel::Channel(std::string name, std::string password) : _name(name), _passwor
 Channel::~Channel(void) { return; }
 
 /********************************************************************************/
+
+std::string Channel::getName(void) const { return _name; }
+std::string Channel::getMode(void) const { return _mode; }
+void        Channel::setMode(std::string mode) { _mode = mode; }

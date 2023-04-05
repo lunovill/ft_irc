@@ -17,6 +17,8 @@ class	Client {
 		std::string	servername;
 		std::string input;
 		std::string output;
+		std::string mode;
+		std::vector<Channel*>	_channels;
 
 		bool	isRegister(void);
 };

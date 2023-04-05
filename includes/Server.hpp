@@ -2,6 +2,7 @@
 
 # include <unistd.h>
 # include <vector>
+# include <string>
 
 # include "Irc.hpp"
 # include "Socket.hpp"
@@ -21,18 +22,19 @@ class	Server {
 		void	run(void);
 
 		std::map<int, Client *>	getClients(void) const;
-		// std::vector<Channel *> getChannel(void) const; // a faire
+		std::vector<Channel *> getChannel(void) const;
 		const std::string getPass() const;
 
 	private:
 
-		int			_port;
-		const std::string	_password;
-		Socket		_socket;
-		fd_set		_readFds;
-		Irc			_command;
+		int						_port;
+		const std::string		_password;
+		const std::string		_mode;
+		Socket					_socket;
+		fd_set					_readFds;
+		Irc						_command;
 		std::map<int, Client *>	_clients;
-		// std::vector<Channel*>	_channels;
+		std::vector<Channel*>	_channels;
 
 		void	_acceptClient(int &clientFd) const;
 		void	_commandRun(std::map<int, Client *>::iterator &client, std::vector<std::string>  &inputs);
@@ -42,21 +44,5 @@ class	Server {
 
 
 // Voir si on le met dans un fichier Utils.{hpp/cpp}
-
-#include <sstream>
-
-template<typename T>
-std::vector<std::string> to_split(T msg, char c = ' ')
-{
-
-	std::string line;
-	std::vector<std::string> vec;
-	std::istringstream stream(msg);
-
-	while (std::getline(stream, line, c))
-		if (!line.empty())
-			vec.push_back(line);
-	return vec;
-}
 
 std::string const	getTime();

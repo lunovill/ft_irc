@@ -10,11 +10,15 @@ class	Channel {
 		Channel(std::string name);
 		Channel(std::string name, std::string password);
 		~Channel(void);
+		std::string getName(void) const;
+		std::string getMode(void) const;
+		void		setMode(std::string mode);
 
 		std::map<int, Client *> clients;
 
 	private:
 
 		const std::string	_name;
+		const std::string	_mode;
 		const std::string	_password;
 };

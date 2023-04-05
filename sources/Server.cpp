@@ -126,8 +126,8 @@ void	Server::run(void) {
 /********************************************************************************/
 
 std::map<int, Client *>	Server::getClients(void) const { return _clients; }
-
 const std::string Server::getPass() const { return _password; }
+std::vector<Channel *> Server::getChannel(void) const { return _channels; }
 
 /********************************************************************************/
 

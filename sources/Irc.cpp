@@ -1,4 +1,5 @@
 #include "Irc.hpp"
+#include "Utils.hpp"
 #include "Server.hpp"
 
 const	Irc::commands Irc::cmdList[] = {
@@ -207,4 +208,86 @@ void Irc::USER(int fd, Client &client)
 // 	return;
 // }
 
-/********************************************************************************/
+/*  La commande ping et formater comme suit: 
+	PING: :1872226306
+	ce nombre et token genere par le serveur la premier chose que de faire notre server c'est ping le client pour tester la connexion.
+
+*/
+void		Irc::PING(int fd, Client &client)
+{
+	std::srand(std::time(0));
+	std::string token = to_string(std::rand() % 9000000000 + 1000000000);
+	client.output += "PING :" + token + CLRF;
+}
+
+void		Irc::PONG(int fd, Client &client)
+{
+	std::vector<std::string> token =  to_split(client.input);
+	if (token.size() != 2)
+		return ;
+	client.output += std::string(SERVER_NAME) + " PONG " + std::string(SERVER_NAME) + token[1] + CLRF;
+}
+
+void	Irc::MODE(int fd, Client &client)
+{
+	std::vector<std::string> commands = to_split(client.input);
+	std::string target = commands.size() == 2 ? commands[1] : "";
+	std::string mode = commands.size() == 3 ?  commands[2] : "";
+
+	if (target[0] == '#')
+	{
+		std::vector<Channel *> channel = _server->getChannel();
+		for (std::vector<Channel *>::iterator it = channel.begin(); it != channel.end(); ++it)
+		{
+			if ((*it)->getName() == target)
+				break ;
+			else if (it == channel.end())
+			{
+				client.output += ERR_NOSUCHCHANNEL(target);
+				return ;
+			}
+		}
+	}
+	else
+	{
+		std::map<int, Client *> clients = _server->getClients();
+		for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			if (it->second->nickname == target)
+				break ;
+			if (it == clients.end()) 
+			{
+				client.output += ERR_NOSUCHNICK(target);
+				return ;
+			}
+		}
+		if (target != client.username)
+		{
+			client.output += ERR_USERSDONTMATCH(target);
+			return ;
+		}
+	}
+	if (mode.empty())
+	{
+		if (target[0] == '#')
+			client.output += RPL_CHANNELMODEIS(target, mode);
+		else 
+			client.output += RPL_UMODEIS(client.username, mode);
+		return ;
+	}
+	else
+	{
+			for (int i = 0; i < mode.size(); i++)
+			{
+				if (target[0] != '#' || (mode[i] != '-' && mode[i] != '+' && mode[i] == 'i' && mode[i] != 'o' && mode[i] != 'b'))
+				{
+					client.output += ERR_UMODEUNKNOWNFLAG(target);
+					return ;
+				}
+				else if (target[0] == '#')
+				{
+						// implementer les mode ...
+				}
+			}
+	}
+}
