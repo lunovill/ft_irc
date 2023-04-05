@@ -19,6 +19,6 @@ class	Channel {
 	private:
 
 		const std::string	_name;
-		const std::string	_mode;
 		const std::string	_password;
+		std::string			_mode;
 };

@@ -9,12 +9,12 @@ const	Irc::commands Irc::cmdList[] = {
 	// {"JOIN", &JOIN},
 	// {"LIST", &LIST},
 	// {"EXIT", &EXIT},
-	// {"PING", &PING_PONG},
-	// {"PONG", &PING_PONG},
+	{"PING", &Irc::PING},
+	{"PONG", &Irc::PONG},
 	// {"PRIVMSG", &PRIVMSG},
 	// {"PART", &PART},
 	// {"TOPIC", &TOPIC},
-	// {"MODE", &MODE},
+	{"MODE", &Irc::MODE},
 	// {"KICK", &KICK}
 	{"", NULL}
 };
@@ -234,60 +234,61 @@ void	Irc::MODE(int fd, Client &client)
 	std::string target = commands.size() == 2 ? commands[1] : "";
 	std::string mode = commands.size() == 3 ?  commands[2] : "";
 
-	if (target[0] == '#')
-	{
-		std::vector<Channel *> channel = _server->getChannel();
-		for (std::vector<Channel *>::iterator it = channel.begin(); it != channel.end(); ++it)
-		{
-			if ((*it)->getName() == target)
-				break ;
-			else if (it == channel.end())
-			{
-				client.output += ERR_NOSUCHCHANNEL(target);
-				return ;
-			}
-		}
-	}
-	else
-	{
-		std::map<int, Client *> clients = _server->getClients();
-		for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			if (it->second->nickname == target)
-				break ;
-			if (it == clients.end()) 
-			{
-				client.output += ERR_NOSUCHNICK(target);
-				return ;
-			}
-		}
-		if (target != client.username)
-		{
-			client.output += ERR_USERSDONTMATCH(target);
-			return ;
-		}
-	}
-	if (mode.empty())
-	{
+	// if (target[0] == '#')
+	// {
+	// 	std::vector<Channel *> channel = _server->getChannel();
+	// 	for (std::vector<Channel *>::iterator it = channel.begin(); it != channel.end(); ++it)
+	// 	{
+	// 		if ((*it)->getName() == target)
+	// 			break ;
+	// 		else if (it == channel.end())
+	// 		{
+	// 			client.output += ERR_NOSUCHCHANNEL(target);
+	// 			return ;
+	// 		}
+	// 	}
+	// }
+	// else
+	// {
+	// 	std::map<int, Client *> clients = _server->getClients();
+	// 	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
+	// 	{
+	// 		if (it->second->nickname == target)
+	// 			break ;
+	// 		if (it == clients.end()) 
+	// 		{
+	// 			client.output += ERR_NOSUCHNICK(target);
+	// 			return ;
+	// 		}
+	// 	}
+	// 	if (target != client.username)
+	// 	{
+	// 		client.output += ERR_USERSDONTMATCH(target);
+	// 		return ;
+	// 	}
+	// }
+	// if (mode.empty())
+	// {
 		if (target[0] == '#')
 			client.output += RPL_CHANNELMODEIS(target, mode);
 		else 
 			client.output += RPL_UMODEIS(client.username, mode);
+		std::cout << std::endl << client.output << std::endl;
 		return ;
-	}
-	else
-	{
-			for (int i = 0; i < mode.size(); i++)
-			{
-				if (target[0] != '#' || (mode[i] != '-' && mode[i] != '+' && mode[i] == 'i' && mode[i] != 'o' && mode[i] != 'b'))
-				{
-					client.output += ERR_UMODEUNKNOWNFLAG(target);
-					return ;
-				}
-				else if (target[0] == '#')
-				{
-						// implementer les mode ...
-				}
-			}
-	}
+	// }
+	// else
+	// {
+	// 		for (int i = 0; i < mode.size(); i++)
+	// 		{
+	// 			if (target[0] != '#' || (mode[i] != '-' && mode[i] != '+' && mode[i] == 'i' && mode[i] != 'o' && mode[i] != 'b'))
+	// 			{
+	// 				client.output += ERR_UMODEUNKNOWNFLAG(target);
+	// 				return ;
+	// 			}
+	// 			else if (target[0] == '#')
+	// 			{
+	// 					// implementer les mode ...
+	// 			}
+	// 		}
+	// }
 }

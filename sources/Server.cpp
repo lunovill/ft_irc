@@ -36,8 +36,6 @@ void Server::_commandRun(std::map<int, Client *>::iterator &client, std::vector<
 		Irc::CommandFt cmd = _command.find(client->second->input);
 		if (cmd) (_command.*cmd)(client->first, *client->second);
 		else client->second->output += ERR_UNKNOWNCOMMAND(client->second->nickname, client->second->input);
-		// Verifier si le client est resgister (il faudre modifier sont status lors de l'utilisation de USER PASS et NICK)
-		// Envoyer les RPL de bienvenue, il se toruve dans l'include de Irc 
 	}
 	if (client->second->isRegister()) {
 		client->second->output += RPL_WELCOME(client->second->nickname, client->second->username, client->second->hostname);

@@ -22,13 +22,12 @@
 
 //MODE
 #define ERR_CHANOPRIVSNEEDED (channel)          RPL_PREFIX("482", "") + " " + channel + " :You're not channel operator" + CLRF
-#define  RPL_CHANNELMODEIS(channel, mode)		RPL_PREFIX("324", "") + " " + channel + " " + mode + " " + CLRF
+#define RPL_CHANNELMODEIS(channel, mode)		RPL_PREFIX("324", "") + " " + channel + " " + mode + " " + CLRF
 #define ERR_UMODEUNKNOWNFLAG(target)            RPL_PREFIX("501", "") + " " + target + " :Unknown MODE flag" + CLRF
 #define ERR_NOSUCHNICK(target)					RPL_PREFIX("401", "") + " " + target + "  :No such nick/channel" + CLRF
 #define ERR_NOSUCHCHANNEL(target)				RPL_PREFIX("403", "") + " :" + target + " :No such channel" + CLRF
 #define ERR_USERSDONTMATCH(target)              RPL_PREFIX("502", "") + " " + target + " :Cant change mode for other users" +  CLRF
-#define RPL_UMODEIS(username, mode)             RPL_PREFIX("221", "") + " " + username + " " + mode + CLRF
-#define RPL_CHANNELMODEIS(username, mode)       RPL_PREFIX("324", "") + " " + username + " " + mode + CLRF
+#define RPL_UMODEIS(username, mode)             RPL_PREFIX("221", "") + username + " " + mode + CLRF
 
 //	NICK
 # define ERR_NONICKNAMEGIVEN(nick)				RPL_PREFIX("431", nick) + " :No nickname given" + CLRF

@@ -18,7 +18,7 @@ class	Client {
 		std::string input;
 		std::string output;
 		std::string mode;
-		std::vector<Channel*>	_channels;
+		// std::vector<Channel *>	_channels;
 
 		bool	isRegister(void);
 };
