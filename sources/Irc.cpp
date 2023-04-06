@@ -258,7 +258,8 @@ void	Irc::JOIN(int fd, Client &client) {
 	}
 
 	std::vector<std::string>	names = to_split(input[0], ',');
-	std::vector<std::string>	passwords = to_split(input[1], ',');
+	std::vector<std::string>	passwords;
+	if (input.size() > 1) passwords = to_split(input[1], ',');
 	std::vector<Channel *>		channels = _server->getChannels();
 	std::vector<Channel *>::iterator it;
 	for (unsigned int i = 0; i < names.size(); i++) {
@@ -268,19 +269,15 @@ void	Irc::JOIN(int fd, Client &client) {
 		}
 		if (it == channels.end()) {
 			Channel *newChannel;
-			if (input.size() == 2 && i < passwords.size()) newChannel = new Channel(names[i], passwords[i]);
+			if (input.size() == 2 && i < passwords.size()) newChannel = new Channel(names[i], passwords[i]); // SEGMFLT
 			else newChannel = new Channel(names[i]);
 			it = _server->addChannel(newChannel);
     	}
-		// else if ((*it)->clients.find(fd) != (*it)->clients.end()) {
-		// 		//erreur
-		// 	break;
-		// }
 		else if (i < passwords.size() && (*it)->getPass() != passwords[i]) { // SEGMFLT
 			client.output += ERR_BADCHANNELKEY(client.nickname, names[i]);
 			break;;
 		}
-		if (!(*it)->addClient(fd, client)) {
+		if (!(*it)->addClient(fd, client)) { // A verifier quand on fera le mode +l
 			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
 			break;
 		}
