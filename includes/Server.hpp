@@ -18,12 +18,12 @@ class	Server {
 		Server(int port, std::string password);
 		~Server(void);
 
-		// std::vector<Channel *>::iterator	addChannel(Channel &channel); // a fare
+		std::vector<Channel *>::iterator	addChannel(Channel *channel);
 		void	run(void);
 
+		const std::string 		getPass() const;
 		std::map<int, Client *>	getClients(void) const;
-		std::vector<Channel *> getChannel(void) const;
-		const std::string getPass() const;
+		std::vector<Channel *>	getChannels(void) const;
 
 	private:
 

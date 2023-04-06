@@ -80,6 +80,12 @@ void Server::_dataRecv(void) {
 	return;
 }
 
+std::vector<Channel *>::iterator	Server::addChannel(Channel *channel) {
+	_channels.push_back(channel);
+	std::vector<Channel *>::iterator	it = _channels.end() - 1;
+	return it;
+}
+
 void	Server::run(void) {
 	int		client_fd;
 	int		max_fd;
@@ -126,9 +132,11 @@ void	Server::run(void) {
 /* --------------------------------- ACCESSOR --------------------------------- */
 /********************************************************************************/
 
-std::map<int, Client *>	Server::getClients(void) const { return _clients; }
 const std::string Server::getPass() const { return _password; }
-std::vector<Channel *> Server::getChannel(void) const { return _channels; }
+
+std::map<int, Client *>	Server::getClients(void) const { return _clients; }
+
+std::vector<Channel *> Server::getChannels(void) const { return _channels; }
 
 /********************************************************************************/
 

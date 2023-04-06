@@ -6,15 +6,15 @@ const	Irc::commands Irc::cmdList[] = {
 	{"PASS", &Irc::PASS},
 	{"NICK", &Irc::NICK},
 	{"USER", &Irc::USER},
-	// {"JOIN", &JOIN},
-	// {"LIST", &LIST},
-	// {"EXIT", &EXIT},
+	{"MODE", &Irc::MODE},
 	{"PING", &Irc::PONG},
 	{"PONG", &Irc::PING},
+	{"JOIN", &Irc::JOIN},
+	// {"LIST", &LIST},
+	// {"EXIT", &EXIT},
 	// {"PRIVMSG", &PRIVMSG},
 	// {"PART", &PART},
 	// {"TOPIC", &TOPIC},
-	{"MODE", &Irc::MODE},
 	// {"KICK", &KICK}
 	{"", NULL}
 };
@@ -166,62 +166,6 @@ void Irc::USER(int fd, Client &client)
 		client.cmdRegister[2] = true;
 }
 
-
-// En cours...
-// void	Server::JOIN(int fd, Client &client) {
-// 	std::vector<std::string>	input = to_split(client.input);
-// 	std::vector<std::string>	names = ft_split(input[1], ',');
-// 	std::vector<std::string>	passwords = ft_split(input[2], ',');
-// 	std::vector<Channel *>		channel = _server.getChannel();
-// 	std::vector<Channel *>::iterator it;
-// 	for (unsigned int i = 0; i < names.size(); i++) {
-// 		for (it = channels.begin(); it != channels.end(); ++it) {
-// 			if (it->getName() == names[i])
-// 				break;
-// 		}
-// 		if (it == channels.end()) {
-// 			it = _server.addChannel(new newChannel(name[i]));
-//     	}
-// 		if (it->clients.find(current_fd) != it->clients.end()) {
-// 				//erreur
-// 			return false;
-// 		}
-// 		else if (it->password != password[i]) {
-// 				//erreur
-// 				return;
-// 		}
-
-// 		it->clients[fd] = &client;
-// 		// Il faut un RPL_ ici
-// 		// std::string message = ":" + current.nickname + "!" + current.username + "@" + current.hostname + " JOIN " + names[i] + "\r\n";
-// 		// for (std::map<int, Client *>::iterator clientIt = it->clients.begin(); clientIt != it->clients.end(); ++clientIt) {
-// 		// 	if (*clientIt->second != current)
-// 		// 		send(clientIt->first, message.c_str(), message.length(), 0);
-// 		// }
-// 	}
-// 	return;
-// }
-
-/*  La commande ping et formater comme suit: 
-	PING: :1872226306
-	ce nombre et token genere par le serveur la premier chose que de faire notre server c'est ping le client pour tester la connexion.
-
-*/
-void		Irc::PING(int fd, Client &client)
-{
-	std::srand(std::time(0));
-	std::string token = to_string(std::rand() % 9000000000 + 1000000000);
-	client.output += "PING :" + token + CLRF;
-}
-
-void		Irc::PONG(int fd, Client &client)
-{
-	std::vector<std::string> token =  to_split(client.input);
-	if (token.size() != 2)
-		return ;
-	client.output += std::string(SERVER_NAME) + " PONG " + std::string(SERVER_NAME) + token[1] + CLRF;
-}
-
 void	Irc::MODE(int fd, Client &client)
 {
 	std::vector<std::string> commands = to_split(client.input);
@@ -284,4 +228,71 @@ void	Irc::MODE(int fd, Client &client)
 	// 			}
 	// 		}
 	// }
+}
+
+/*  La commande ping et formater comme suit: 
+	PING: :1872226306
+	ce nombre et token genere par le serveur la premier chose que de faire notre server c'est ping le client pour tester la connexion.
+
+*/
+void		Irc::PING(int fd, Client &client)
+{
+	std::srand(std::time(0));
+	std::string token = to_string(std::rand() % 9000000000 + 1000000000);
+	client.output += "PING :" + token + CLRF;
+}
+
+void		Irc::PONG(int fd, Client &client)
+{
+	std::vector<std::string> token =  to_split(client.input);
+	if (token.size() != 2)
+		return ;
+	client.output += std::string(SERVER_NAME) + " PONG " + std::string(SERVER_NAME) + token[1] + CLRF;
+}
+
+void	Irc::JOIN(int fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(0, client.input.length() - 5));
+	if (input.empty()) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "JOIN");
+		return;
+	}
+
+	std::vector<std::string>	names = to_split(input[0], ',');
+	std::vector<std::string>	passwords = to_split(input[1], ',');
+	std::vector<Channel *>		channels = _server->getChannels();
+	std::vector<Channel *>::iterator it;
+	for (unsigned int i = 0; i < names.size(); i++) {
+		for (it = channels.begin(); it != channels.end(); ++it) {
+			if ((*it)->getName() == names[i])
+				break;
+		}
+		if (it == channels.end()) {
+			Channel *newChannel;
+			if (input.size() == 2 && i < passwords.size()) newChannel = new Channel(names[i], passwords[i]);
+			else newChannel = new Channel(names[i]);
+			it = _server->addChannel(newChannel);
+    	}
+		// else if ((*it)->clients.find(fd) != (*it)->clients.end()) {
+		// 		//erreur
+		// 	break;
+		// }
+		else if (i < passwords.size() && (*it)->getPass() != passwords[i]) { // SEGMFLT
+			client.output += ERR_BADCHANNELKEY(client.nickname, names[i]);
+			break;;
+		}
+		if (!(*it)->addClient(fd, client)) {
+			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
+			break;
+		}
+
+		if (!(*it)->topic.empty())
+			client.output += RPL_TOPIC(client.nickname, names[i], (*it)->topic);
+		std::string clientsNames = client.nickname;
+		for (std::map<int, Client *>::iterator itClient = (*it)->clients.begin(); itClient != (*it)->clients.end(); ++itClient)
+			if (itClient->first != fd)
+				clientsNames += " " + itClient->second->nickname;
+		client.output += RPL_NAMREPLY(client.nickname, names[i], clientsNames);
+		client.output += RPL_ENDOFNAMES(client.nickname, names[i]);
+	}
+	return;
 }
