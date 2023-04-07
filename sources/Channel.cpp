@@ -4,9 +4,9 @@
 /* ------------------------------- CONSTRUCTOR -------------------------------- */
 /********************************************************************************/
 
-Channel::Channel(std::string name) : _name(name), _clientLimit(-1) { return; }
+Channel::Channel(std::string name) : _name(name), _clientLimit(0) { return; }
 
-Channel::Channel(std::string name, std::string password) : _name(name), _password(password), _clientLimit(-1) { return; }
+Channel::Channel(std::string name, std::string password) : _name(name), _password(password), _clientLimit(0), _mode("k") { return; }
 
 /********************************************************************************/
 /* -------------------------------- DESTRUCTOR -------------------------------- */
@@ -20,7 +20,7 @@ Channel::~Channel(void) { return; }
 /********************************************************************************/
 
 bool		Channel::addClient(int fd, Client &client) {
-	if (_clientLimit == -1 || (_clientLimit != -1 && clients.size() < _clientLimit)) {
+	if (_mode.find('l') == std::string::npos || (_mode.find('l') != std::string::npos && clients.size() < _clientLimit)) {
 		clients[fd] = &client;
 		return true;
 	}

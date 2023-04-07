@@ -18,11 +18,12 @@
 # define RPL_CREATED(nick, datetime)			RPL_PREFIX("003", nick) + " :This server was created " + datetime + CLRF
 # define RPL_MYINFO(nick)						RPL_PREFIX("004", nick) + " " + SERVER_HOSTNAME + " " + SERVER_VERSION + " " + USER_MODES + " " + CHANNEL_MODES + CLRF
 # define RPL_UMODEIS(nick, modes)				RPL_PREFIX("221", nick) + " :" + modes + CLRF
-
 # define RPL_CHANNELMODEIS(channel, mode)		RPL_PREFIX("324", "") + " " + channel + " " + mode + " " + CLRF
 # define RPL_TOPIC(nick, chan, topic)			RPL_PREFIX("332", nick) + " " + chan + " :" + topic + CLRF
 # define RPL_NAMREPLY(nick, chan, names)		RPL_PREFIX("353", nick) + " = " + chan + " :" + names + CLRF
 # define RPL_ENDOFNAMES(nick, chan)				RPL_PREFIX("366", nick) + " " + chan + " :End of /NAMES list" + CLRF
+# define RPL_YOUREOPER(nick)					RPL_PREFIX("381", nick) + " :You are now an IRC operator" + CLRF
+
 # define ERR_NOSUCHNICK(target)					RPL_PREFIX("401", "") + " " + target + "  :No such nick/channel" + CLRF
 # define ERR_NOSUCHCHANNEL(target)				RPL_PREFIX("403", "") + " :" + target + " :No such channel" + CLRF
 # define ERR_UNKNOWNCOMMAND(nick, command)		RPL_PREFIX("421", nick) + ":" + command + " :Unknown command" + CLRF
@@ -34,7 +35,8 @@
 # define ERR_PASSWDMISMATCH(nick)				RPL_PREFIX("464", nick) + " :Password incorrect" + CLRF
 # define ERR_CHANNELISFULL(nick, chan)			RPL_PREFIX("471", nick) + " :" + chan + " :Cannot join channel (+l)" + CLRF
 # define ERR_BADCHANNELKEY(nick, chan)			RPL_PREFIX("475", nick) + " :" + chan + " :Cannot join channel (+k)" + CLRF
-# define ERR_CHANOPRIVSNEEDED (channel)			RPL_PREFIX("482", "") + " " + channel + " :You're not channel operator" + CLRF
+# define ERR_CHANOPRIVSNEEDED(channel)			RPL_PREFIX("482", "") + " " + channel + " :You're not channel operator" + CLRF
+# define ERR_NOOPERHOST(nick)					RPL_PREFIX("491", nick) + " :No O-lines for your host" + CLRF
 # define ERR_UMODEUNKNOWNFLAG(target)			RPL_PREFIX("501", "") + " " + target + " :Unknown MODE flag" + CLRF
 # define ERR_USERSDONTMATCH(target)				RPL_PREFIX("502", "") + " " + target + " :Cant change mode for other users" +  CLRF
 
@@ -61,6 +63,7 @@ class	Irc {
 		void		USER(int fd, Client &client);
 		void		PING(int fd, Client &client);
 		void		PONG(int fd, Client &client);
+		void		OPER(int fd, Client &client);
 		void		MODE(int fd, Client &client);
 		void		JOIN(int fd, Client &client);
 

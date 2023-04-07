@@ -9,6 +9,7 @@ const	Irc::commands Irc::cmdList[] = {
 	{"MODE", &Irc::MODE},
 	{"PING", &Irc::PONG},
 	{"PONG", &Irc::PING},
+	{"OPER", &Irc::OPER},
 	{"JOIN", &Irc::JOIN},
 	// {"LIST", &LIST},
 	// {"EXIT", &EXIT},
@@ -96,74 +97,40 @@ void Irc::USER(int fd, Client &client)
 		client.output += ERR_ALREADYREGISTRED(client.nickname);
 		return;
 	}
-	std::vector<std::string> parametre = to_split(client.input);
-	if (parametre.size() != 6)
+	std::vector<std::string> input = to_split(client.input.substr(5, client.input.length() - 5));
+	if (input.size() < 5)
 	{
-		client.output += ERR_NEEDMOREPARAMS(client.nickname, parametre[0]);
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, input[0]);
 		send(fd, client.output.c_str(), client.output.length(), 0);
 		return;
 	}
-
-	for (int i = 0; i < parametre.size(); i++)
-	{
-		for (unsigned int j = 0; j < parametre[i].length(); j++)
-		{
-			// if ((i == 1 || i == 2) && !std::isalnum(parametre[i][j]) && parametre[i][j] != '-' && parametre[i][j] != '_')
-			// {
-			// 	if (i == 1)
-			// 		client.output += ERR_ERRONEUSNICKNAME(client.nickname, parametre[i]);
-			// 	else
-			// 		client.output += ERR_ERRONEUSUSERNAME(client.username, parametre[i]);
-			// 	// send(fd, client.output.c_str(), client.output.length(), 0);
-			// 	return;
-			// }
-			// if (i == 3 && (!isIpAddress(parametre[3]) && parametre[3] != "localhost"))
-			// 	return;
-			if ((i == 4 || i == 5))
-			{
-				if (i == 4 && parametre[i][0] != ':')
-				{
-					client.output += ERR_NEEDMOREPARAMS(client.nickname, parametre[0]);
-					// send(fd, client.output.c_str(), client.output.length(), 0);
-					return;
-				}
-				else
-					j++;
-				// if (!std::isalpha(parametre[i][j]))
-				// {
-				// 	client.output += ERR_ERRONEUSREALNAME(client.username, parametre[i]);
-				// 	// send(fd, client.output.c_str(), client.output.length(), 0);
-				// 	return;
-				// }
-			}
-		}
-	}
-
-	// std::cout << "ICI 1 " << std::endl;
-	// std::map<int, Client *> clients = _server->getClients();
-	// for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
-	// {
-	// 	if (it->second->nickname == parametre[1])
-	// 	{
-	// 		client.output += ERR_ALREADYREGISTRED(client.nickname);
-	// 		// send(fd, client.output.c_str(), client.output.length(), 0);
-	// 		return;
-	// 	}
-	// 	if (it->second->username == parametre[2])
-	// 	{
-	// 		client.output += ERR_ALREADYREGISTRED(client.nickname);
-	// 		// send(fd, client.output.c_str(), client.output.length(), 0);
-	// 		return;
-	// 	}
-	// }
-
-	if (client.nickname.empty())
-		client.nickname = parametre[1];
-	client.username = parametre[2];
-	client.hostname = parametre[3];
-	client.realname = parametre[4] + " " + parametre[5];
+	client.nickname = input[0];
+	client.username = input[1];
+	client.hostname = input[2];
+	client.realname = input[3] + " " + input[4];
 	if (client.cmdRegister[2] != true)
 		client.cmdRegister[2] = true;
+}
+
+void	Irc::OPER(int fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
+	if (input.size() < 2) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "OPER");
+		return;
+	}
+	std::string	username = input[0];
+	std::string	password = input[1];
+	if (password != "carotte") {
+		client.output += ERR_PASSWDMISMATCH(client.nickname);
+		return;
+	}
+	if ((username != "lunovill" && username != "engooh" && username != "sredjini") || client.hostname != "localhost") {
+		client.output += ERR_NOOPERHOST(client.nickname);
+		return;
+	}
+	client.mode += "o";
+	client.output += RPL_YOUREOPER(client.nickname);
+	return;
 }
 
 void	Irc::MODE(int fd, Client &client)
@@ -251,7 +218,7 @@ void		Irc::PONG(int fd, Client &client)
 }
 
 void	Irc::JOIN(int fd, Client &client) {
-	std::vector<std::string>	input = to_split(client.input.substr(0, client.input.length() - 5));
+	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
 	if (input.empty()) {
 		client.output += ERR_NEEDMOREPARAMS(client.nickname, "JOIN");
 		return;
@@ -269,16 +236,18 @@ void	Irc::JOIN(int fd, Client &client) {
 		}
 		if (it == channels.end()) {
 			Channel *newChannel;
-			if (input.size() == 2 && i < passwords.size()) newChannel = new Channel(names[i], passwords[i]); // SEGMFLT
+			if (input.size() == 2 && i < passwords.size()) newChannel = new Channel(names[i], passwords[i]);
 			else newChannel = new Channel(names[i]);
 			it = _server->addChannel(newChannel);
     	}
-		else if (i < passwords.size() && (*it)->getPass() != passwords[i]) { // SEGMFLT
+		else if ((*it)->getMode().find('k') != std::string::npos && (i >= passwords.size()) || (i < passwords.size() && (*it)->getPass() != passwords[i])) {
 			client.output += ERR_BADCHANNELKEY(client.nickname, names[i]);
-			break;;
+			// PART
+			break;
 		}
 		if (!(*it)->addClient(fd, client)) { // A verifier quand on fera le mode +l
 			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
+			// PART
 			break;
 		}
 

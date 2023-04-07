@@ -1,7 +1,6 @@
 #pragma once
 
 # include <map>
-# include <sys/types.h>
 # include "Client.hpp"
 
 class	Channel {
@@ -28,5 +27,5 @@ class	Channel {
 		const std::string	_name;
 		const std::string	_password;
 		std::string			_mode;
-		ssize_t				_clientLimit;
+		unsigned int		_clientLimit;
 };
