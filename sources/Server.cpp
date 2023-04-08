@@ -35,7 +35,7 @@ void Server::_commandRun(std::map<int, Client *>::iterator &client, std::vector<
 		client->second->input = inputs[i].substr(0, inputs[i].length() - 1);
 		Irc::CommandFt cmd = _command.find(client->second->input);
 		if (cmd) (_command.*cmd)(client->first, *client->second);
-		else client->second->output += ERR_UNKNOWNCOMMAND(client->second->nickname, client->second->input);
+		else client->second->output += ERR_UNKNOWNCOMMAND(client->second->nickname, to_split(client->second->input)[0]);
 	}
 	if (client->second->isRegister()) {
 		client->second->output += RPL_WELCOME(client->second->nickname, client->second->username, client->second->hostname);
@@ -80,10 +80,28 @@ void Server::_dataRecv(void) {
 	return;
 }
 
-std::vector<Channel *>::iterator	Server::addChannel(Channel *channel) {
-	_channels.push_back(channel);
-	std::vector<Channel *>::iterator	it = _channels.end() - 1;
-	return it;
+bool	Server::findClientNick(std::string const nickname) const {
+	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+		if (it->second->nickname == nickname)
+			return true;
+	return false;
+}
+
+void	Server::addChannel(Channel *channel) { _channels.push_back(channel); }
+
+void	Server::sendAll(int fd, Client &client, std::string const message) const { 
+	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+		if (fd !=  it->first) {
+			std::string	output = RPL_PREFIX("", it->second->nickname) + " :" + client.nickname + message + CLRF;
+			send(it->first, output.c_str(), output.size(), 0);
+		}
+	return;
+}
+
+void	Server::eraseChannel(Channel *channel) {
+	delete channel;
+	_channels.erase(std::find(_channels.begin(), _channels.end(), channel));
+	return;
 }
 
 void	Server::run(void) {
@@ -120,8 +138,8 @@ void	Server::run(void) {
 		close(it->first);
 		delete it->second;
 	}
-	// for (std::vector<Channel *>::iterator it = _channels.end(); it != _channels.end(); ++it)
-	// 	delete *it;
+	for (std::vector<Channel *>::iterator it = _channels.end(); it != _channels.end(); ++it)
+		delete *it;
 	_clients.clear();
 	close(_socket.getFd());
 	std::cout << "Server closed" << std::endl;
@@ -134,9 +152,12 @@ void	Server::run(void) {
 
 const std::string Server::getPass() const { return _password; }
 
-std::map<int, Client *>	Server::getClients(void) const { return _clients; }
-
-std::vector<Channel *> Server::getChannels(void) const { return _channels; }
+Channel	*Server::getChannel(std::string const &name) const {
+	for (std::vector<Channel *>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+		if (name == (*it)->getName())
+			return *it;
+	return NULL;
+}
 
 /********************************************************************************/
 

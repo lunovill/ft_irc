@@ -13,19 +13,26 @@ class	Channel {
 
 		std::string	topic;
 
+		// Verifie qu'un client appartient a la liste _clients, si il ne le toruve pas il renvoie false
+		bool		findClient(int fd) const;
+		// Verifie la limite (MODE +l) et add le client a la liste _clients, si il ne peut pas il renvoie false
 		bool		addClient(int fd, Client &client);
+		// Supprime de la liste un client, si c'etait le dernier du channel, elle renvoie false
+		bool		eraseClient(int fd);
+		// Renvoie la liste de tout les nicknames des clients sous la forme d'une seul strings
+		std::string clientList(std::string const &firstName) const;
 
-		std::string getName(void) const;
-		std::string getPass(void) const;
-		std::string getMode(void) const;
-		void		setMode(std::string mode);
+		std::string 	getName(void) const;
+		std::string 	getPass(void) const;
+		std::string 	getMode(void) const;
+		void			setMode(std::string const mode);
 
-		std::map<int, Client *> clients;
 
 	private:
 
-		const std::string	_name;
-		const std::string	_password;
-		std::string			_mode;
-		unsigned int		_clientLimit;
+		std::string const		_name;
+		std::string	const		_password;
+		std::string				_mode;
+		size_t					_clientLimit;
+		std::map<int, Client *> _clients;
 };

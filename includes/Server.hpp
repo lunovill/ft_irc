@@ -1,6 +1,7 @@
 #pragma once
 
 # include <unistd.h>
+# include <algorithm>
 # include <vector>
 # include <string>
 
@@ -18,12 +19,14 @@ class	Server {
 		Server(int port, std::string password);
 		~Server(void);
 
-		std::vector<Channel *>::iterator	addChannel(Channel *channel);
+		bool	findClientNick(std::string const nickname) const;
+		void	sendAll(int fd, Client &client, std::string const message) const;
+		void	addChannel(Channel *channel);
+		void	eraseChannel(Channel *channel);
 		void	run(void);
 
-		const std::string 		getPass() const;
-		std::map<int, Client *>	getClients(void) const;
-		std::vector<Channel *>	getChannels(void) const;
+		const std::string 	getPass() const;
+		Channel				*getChannel(std::string const &name) const;
 
 	private:
 

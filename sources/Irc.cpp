@@ -9,12 +9,13 @@ const	Irc::commands Irc::cmdList[] = {
 	{"MODE", &Irc::MODE},
 	{"PING", &Irc::PONG},
 	{"PONG", &Irc::PING},
+	{"QUIT", &Irc::QUIT},
 	{"OPER", &Irc::OPER},
 	{"JOIN", &Irc::JOIN},
+	{"PART", &Irc::PART},
 	// {"LIST", &LIST},
 	// {"EXIT", &EXIT},
 	// {"PRIVMSG", &PRIVMSG},
-	// {"PART", &PART},
 	// {"TOPIC", &TOPIC},
 	// {"KICK", &KICK}
 	{"", NULL}
@@ -79,12 +80,10 @@ void	Irc::NICK(int fd, Client &client) {
 			client.output += ERR_ERRONEUSNICKNAME(client.nickname, nickname);
 			return;
 		}
-	std::map<int, Client *> clients = _server->getClients();
-	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
-		if (it->second->nickname == nickname) {
+	if (_server->findClientNick(nickname)) {
 			client.output += ERR_NICKNAMEINUSE(client.nickname, nickname);
 			return;
-		}
+	}
 	client.nickname = nickname;
 	if (client.cmdRegister[1] != true)
 		client.cmdRegister[1] = true;	
@@ -101,10 +100,10 @@ void Irc::USER(int fd, Client &client)
 	if (input.size() < 5)
 	{
 		client.output += ERR_NEEDMOREPARAMS(client.nickname, input[0]);
-		send(fd, client.output.c_str(), client.output.length(), 0);
 		return;
 	}
-	client.nickname = input[0];
+	if (client.nickname.empty())
+		client.nickname = input[0];
 	client.username = input[1];
 	client.hostname = input[2];
 	client.realname = input[3] + " " + input[4];
@@ -128,8 +127,34 @@ void	Irc::OPER(int fd, Client &client) {
 		client.output += ERR_NOOPERHOST(client.nickname);
 		return;
 	}
-	client.mode += "o";
+	if (client.mode.find('o') == std::string::npos)
+		client.mode += "o";
 	client.output += RPL_YOUREOPER(client.nickname);
+	return;
+}
+
+void	Irc::QUIT(int fd, Client &client) {
+	_server->sendAll(fd, client, client.input);	
+	return;
+}
+
+void	Irc::PART(int fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
+	if (input.size() < 1) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "OPER");
+		return;
+	}
+	Channel *channel = _server->getChannel(input[0]);
+	if (!channel) {
+		client.output += ERR_NOSUCHCHANNEL(input[0]);
+		return;
+	} else if (!channel->findClient(fd)) {
+		client.output += ERR_NOTONCHANNEL(client.nickname, input[0]);
+		return;
+	}
+	if (!channel->eraseClient(fd))
+		_server->eraseChannel(channel);
+	client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc PART ") + input[0] + CLRF;
 	return;
 }
 
@@ -227,37 +252,27 @@ void	Irc::JOIN(int fd, Client &client) {
 	std::vector<std::string>	names = to_split(input[0], ',');
 	std::vector<std::string>	passwords;
 	if (input.size() > 1) passwords = to_split(input[1], ',');
-	std::vector<Channel *>		channels = _server->getChannels();
-	std::vector<Channel *>::iterator it;
+	Channel *channel;;
 	for (unsigned int i = 0; i < names.size(); i++) {
-		for (it = channels.begin(); it != channels.end(); ++it) {
-			if ((*it)->getName() == names[i])
-				break;
-		}
-		if (it == channels.end()) {
-			Channel *newChannel;
-			if (input.size() == 2 && i < passwords.size()) newChannel = new Channel(names[i], passwords[i]);
-			else newChannel = new Channel(names[i]);
-			it = _server->addChannel(newChannel);
-    	}
-		else if ((*it)->getMode().find('k') != std::string::npos && (i >= passwords.size()) || (i < passwords.size() && (*it)->getPass() != passwords[i])) {
+		channel = _server->getChannel(names[i]);
+		if (!channel) {
+			if (input.size() == 2 && i < passwords.size()) channel = new Channel(names[i], passwords[i]);
+			else channel = new Channel(names[i]);
+			_server->addChannel(channel);
+    	} else if (channel->getMode().find('k') != std::string::npos && (i >= passwords.size()) || (i < passwords.size() && channel->getPass() != passwords[i])) {
 			client.output += ERR_BADCHANNELKEY(client.nickname, names[i]);
-			// PART
 			break;
 		}
-		if (!(*it)->addClient(fd, client)) { // A verifier quand on fera le mode +l
+		if (!channel->addClient(fd, client)) { // A verifier quand on fera le mode +l
+
 			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
-			// PART
 			break;
 		}
 
-		if (!(*it)->topic.empty())
-			client.output += RPL_TOPIC(client.nickname, names[i], (*it)->topic);
-		std::string clientsNames = client.nickname;
-		for (std::map<int, Client *>::iterator itClient = (*it)->clients.begin(); itClient != (*it)->clients.end(); ++itClient)
-			if (itClient->first != fd)
-				clientsNames += " " + itClient->second->nickname;
-		client.output += RPL_NAMREPLY(client.nickname, names[i], clientsNames);
+		client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc JOIN ") + input[0] + CLRF;
+		if (!channel->topic.empty())
+			client.output += RPL_TOPIC(client.nickname, names[i], channel->topic);
+		client.output += RPL_NAMREPLY(client.nickname, names[i], channel->clientList(client.nickname));
 		client.output += RPL_ENDOFNAMES(client.nickname, names[i]);
 	}
 	return;
