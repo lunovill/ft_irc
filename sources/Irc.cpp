@@ -1,18 +1,17 @@
 #include "Irc.hpp"
-#include "Utils.hpp"
 #include "Server.hpp"
 
-const	Irc::commands Irc::cmdList[] = {
+Irc::commands const Irc::cmdList[] = {
 	{"PASS", &Irc::PASS},
 	{"NICK", &Irc::NICK},
 	{"USER", &Irc::USER},
-	{"MODE", &Irc::MODE},
 	{"PING", &Irc::PONG},
 	{"PONG", &Irc::PING},
-	{"QUIT", &Irc::QUIT},
 	{"OPER", &Irc::OPER},
+	{"QUIT", &Irc::QUIT},
 	{"JOIN", &Irc::JOIN},
 	{"PART", &Irc::PART},
+	{"MODE", &Irc::MODE},
 	// {"LIST", &LIST},
 	// {"EXIT", &EXIT},
 	// {"PRIVMSG", &PRIVMSG},
@@ -49,7 +48,7 @@ Irc::CommandFt	Irc::find(std::string const &input) const {
 	return NULL;
 };
 
-void Irc::PASS(int fd, Client &client)
+void Irc::PASS(int const &fd, Client &client)
 {
 	if (client.cmdRegister[3] == true) {
 		client.output += ERR_ALREADYREGISTRED(client.nickname);
@@ -69,7 +68,7 @@ void Irc::PASS(int fd, Client &client)
 	return;
 }
 
-void	Irc::NICK(int fd, Client &client) {
+void	Irc::NICK(int const &fd, Client &client) {
 	std::string	nickname = client.input.substr(5, client.input.length() - 5);
 	if (nickname.empty()) {
 		client.output += ERR_NONICKNAMEGIVEN(client.nickname);
@@ -90,7 +89,7 @@ void	Irc::NICK(int fd, Client &client) {
 	return;
 }
 
-void Irc::USER(int fd, Client &client)
+void Irc::USER(int const &fd, Client &client)
 {
 	if (client.cmdRegister[3] == true) {
 		client.output += ERR_ALREADYREGISTRED(client.nickname);
@@ -111,7 +110,7 @@ void Irc::USER(int fd, Client &client)
 		client.cmdRegister[2] = true;
 }
 
-void	Irc::OPER(int fd, Client &client) {
+void	Irc::OPER(int const &fd, Client &client) {
 	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
 	if (input.size() < 2) {
 		client.output += ERR_NEEDMOREPARAMS(client.nickname, "OPER");
@@ -133,12 +132,12 @@ void	Irc::OPER(int fd, Client &client) {
 	return;
 }
 
-void	Irc::QUIT(int fd, Client &client) {
+void	Irc::QUIT(int const &fd, Client &client) {
 	_server->sendAll(fd, client, client.input);	
 	return;
 }
 
-void	Irc::PART(int fd, Client &client) {
+void	Irc::PART(int const &fd, Client &client) {
 	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
 	if (input.size() < 1) {
 		client.output += ERR_NEEDMOREPARAMS(client.nickname, "OPER");
@@ -158,7 +157,63 @@ void	Irc::PART(int fd, Client &client) {
 	return;
 }
 
-void	Irc::MODE(int fd, Client &client)
+/*  La commande ping et formater comme suit: 
+	PING: :1872226306
+	ce nombre et token genere par le serveur la premier chose que de faire notre server c'est ping le client pour tester la connexion.
+
+*/
+void		Irc::PING(int const &fd, Client &client)
+{
+	std::srand(std::time(0));
+	std::string token = to_string(std::rand() % 9000000000 + 1000000000);
+	client.output += "PING :" + token + CLRF;
+}
+
+void		Irc::PONG(int const &fd, Client &client)
+{
+	std::vector<std::string> token =  to_split(client.input);
+	if (token.size() != 2)
+		return ;
+	client.output += std::string(SERVER_NAME) + " PONG " + std::string(SERVER_NAME) + token[1] + CLRF;
+}
+
+void	Irc::JOIN(int const &fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
+	if (input.empty()) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "JOIN");
+		return;
+	}
+
+	std::vector<std::string>	names = to_split(input[0], ',');
+	std::vector<std::string>	passwords;
+	if (input.size() > 1) passwords = to_split(input[1], ',');
+	Channel *channel;;
+	for (unsigned int i = 0; i < names.size(); i++) {
+		channel = _server->getChannel(names[i]);
+		if (!channel) {
+			if (input.size() == 2 && i < passwords.size()) channel = new Channel(names[i], passwords[i]);
+			else channel = new Channel(names[i]);
+			_server->addChannel(channel);
+    	} else if (channel->getMode().find('k') != std::string::npos && (i >= passwords.size()) || (i < passwords.size() && channel->getPass() != passwords[i])) {
+			client.output += ERR_BADCHANNELKEY(client.nickname, names[i]);
+			break;
+		}
+		if (!channel->addClient(fd, client)) { // A verifier quand on fera le mode +l
+
+			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
+			break;
+		}
+
+		client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc JOIN ") + input[0] + CLRF;
+		if (!channel->topic.empty())
+			client.output += RPL_TOPIC(client.nickname, names[i], channel->topic);
+		client.output += RPL_NAMREPLY(client.nickname, names[i], channel->clientList(client.nickname));
+		client.output += RPL_ENDOFNAMES(client.nickname, names[i]);
+	}
+	return;
+}
+
+void	Irc::MODE(int const &fd, Client &client)
 {
 	std::vector<std::string> commands = to_split(client.input);
 	std::string target = commands.size() == 2 ? commands[1] : "";
@@ -222,58 +277,4 @@ void	Irc::MODE(int fd, Client &client)
 	// }
 }
 
-/*  La commande ping et formater comme suit: 
-	PING: :1872226306
-	ce nombre et token genere par le serveur la premier chose que de faire notre server c'est ping le client pour tester la connexion.
-
-*/
-void		Irc::PING(int fd, Client &client)
-{
-	std::srand(std::time(0));
-	std::string token = to_string(std::rand() % 9000000000 + 1000000000);
-	client.output += "PING :" + token + CLRF;
-}
-
-void		Irc::PONG(int fd, Client &client)
-{
-	std::vector<std::string> token =  to_split(client.input);
-	if (token.size() != 2)
-		return ;
-	client.output += std::string(SERVER_NAME) + " PONG " + std::string(SERVER_NAME) + token[1] + CLRF;
-}
-
-void	Irc::JOIN(int fd, Client &client) {
-	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
-	if (input.empty()) {
-		client.output += ERR_NEEDMOREPARAMS(client.nickname, "JOIN");
-		return;
-	}
-
-	std::vector<std::string>	names = to_split(input[0], ',');
-	std::vector<std::string>	passwords;
-	if (input.size() > 1) passwords = to_split(input[1], ',');
-	Channel *channel;;
-	for (unsigned int i = 0; i < names.size(); i++) {
-		channel = _server->getChannel(names[i]);
-		if (!channel) {
-			if (input.size() == 2 && i < passwords.size()) channel = new Channel(names[i], passwords[i]);
-			else channel = new Channel(names[i]);
-			_server->addChannel(channel);
-    	} else if (channel->getMode().find('k') != std::string::npos && (i >= passwords.size()) || (i < passwords.size() && channel->getPass() != passwords[i])) {
-			client.output += ERR_BADCHANNELKEY(client.nickname, names[i]);
-			break;
-		}
-		if (!channel->addClient(fd, client)) { // A verifier quand on fera le mode +l
-
-			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
-			break;
-		}
-
-		client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc JOIN ") + input[0] + CLRF;
-		if (!channel->topic.empty())
-			client.output += RPL_TOPIC(client.nickname, names[i], channel->topic);
-		client.output += RPL_NAMREPLY(client.nickname, names[i], channel->clientList(client.nickname));
-		client.output += RPL_ENDOFNAMES(client.nickname, names[i]);
-	}
-	return;
-}
+/********************************************************************************/

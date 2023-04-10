@@ -1,6 +1,7 @@
 #pragma once
 
 # include <map>
+
 # include "Client.hpp"
 
 class	Channel {
@@ -19,7 +20,7 @@ class	Channel {
 		bool		addClient(int fd, Client &client);
 		// Supprime de la liste un client, si c'etait le dernier du channel, elle renvoie false
 		bool		eraseClient(int fd);
-		// Renvoie la liste de tout les nicknames des clients sous la forme d'une seul strings
+		// Renvoie la liste de tout les nicknames des clients sous la forme d'une seul string
 		std::string clientList(std::string const &firstName) const;
 
 		std::string 	getName(void) const;

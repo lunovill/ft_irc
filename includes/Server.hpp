@@ -1,9 +1,9 @@
 #pragma once
 
-# include <unistd.h>
 # include <algorithm>
-# include <vector>
 # include <string>
+# include <unistd.h>
+# include <vector>
 
 # include "Irc.hpp"
 # include "Socket.hpp"
@@ -16,36 +16,36 @@ class	Server {
 
 	public:
 
-		Server(int port, std::string password);
+		Server(int port, std::string const password);
 		~Server(void);
 
-		bool	findClientNick(std::string const nickname) const;
-		void	sendAll(int fd, Client &client, std::string const message) const;
+		// Verifie si le nick d'un client est deja utilise
+		bool	findClientNick(std::string const &nickname) const;
+		// send() a tout les client sauf a celui envoiyer en parametre
+		void	sendAll(int const &fd, Client &client, std::string const &message) const;
 		void	addChannel(Channel *channel);
 		void	eraseChannel(Channel *channel);
 		void	run(void);
 
-		const std::string 	getPass() const;
+		std::string const	getPass() const;
 		Channel				*getChannel(std::string const &name) const;
 
 	private:
 
 		int						_port;
-		const std::string		_password;
-		const std::string		_mode;
+		std::string const		_password;
+		std::string const		_mode;
 		Socket					_socket;
 		fd_set					_readFds;
 		Irc						_command;
-		std::map<int, Client *>	_clients;
+		std::map<int const, Client *>	_clients;
 		std::vector<Channel*>	_channels;
 
 		void	_acceptClient(int &clientFd) const;
-		void	_commandRun(std::map<int, Client *>::iterator &client, std::vector<std::string>  &inputs);
+		void	_commandRun(std::map<int const, Client *>::iterator &client, std::vector<std::string>  &inputs);
 		void	_dataRecv(void);
 
 };
 
-
 // Voir si on le met dans un fichier Utils.{hpp/cpp}
-
 std::string const	getTime();

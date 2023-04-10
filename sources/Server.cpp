@@ -5,7 +5,7 @@
 /* ------------------------------- CONSTRUCTOR -------------------------------- */
 /********************************************************************************/
 
-Server::Server(int port, std::string password) : _port(port), _password(password), _socket(port), _command(this) { return; }
+Server::Server(int port, std::string const password) : _port(port), _password(password), _socket(port), _command(this) { return; }
 
 /********************************************************************************/
 /* -------------------------------- DESTRUCTOR -------------------------------- */
@@ -29,7 +29,7 @@ void	Server::_acceptClient(int &clientFd) const {
 	return ;
 }
 
-void Server::_commandRun(std::map<int, Client *>::iterator &client, std::vector<std::string>  &inputs)
+void Server::_commandRun(std::map<int const, Client *>::iterator &client, std::vector<std::string>  &inputs)
 {	
 	for (unsigned int i = 0; i < inputs.size(); i++) {
 		client->second->input = inputs[i].substr(0, inputs[i].length() - 1);
@@ -80,7 +80,7 @@ void Server::_dataRecv(void) {
 	return;
 }
 
-bool	Server::findClientNick(std::string const nickname) const {
+bool	Server::findClientNick(std::string const &nickname) const {
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 		if (it->second->nickname == nickname)
 			return true;
@@ -89,7 +89,7 @@ bool	Server::findClientNick(std::string const nickname) const {
 
 void	Server::addChannel(Channel *channel) { _channels.push_back(channel); }
 
-void	Server::sendAll(int fd, Client &client, std::string const message) const { 
+void	Server::sendAll(int const &fd, Client &client, std::string const &message) const { 
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 		if (fd !=  it->first) {
 			std::string	output = RPL_PREFIX("", it->second->nickname) + " :" + client.nickname + message + CLRF;

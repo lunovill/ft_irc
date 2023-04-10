@@ -1,6 +1,7 @@
 #pragma once
 
 # include <string>
+
 # include "Utils.hpp"
 # include "Client.hpp"
 # include "Channel.hpp"
@@ -13,6 +14,7 @@
 # define USER_MODES					"io"
 # define RPL_PREFIX(code, nick)		std::string(":" + SERVER_HOSTNAME + " " + code + " " + nick)
 
+//		RPL
 # define RPL_WELCOME(nick, user, host)			RPL_PREFIX("001", nick) + " :Welcome to the " + SERVER_NAME + " Network, " + nick + "!" + user + "@" + host + CLRF
 # define RPL_YOURHOST(nick)						RPL_PREFIX("002", nick) + " :Your host is " + SERVER_HOSTNAME + ", running version " + SERVER_VERSION + CLRF
 # define RPL_CREATED(nick, datetime)			RPL_PREFIX("003", nick) + " :This server was created " + datetime + CLRF
@@ -26,6 +28,7 @@
 # define RPL_YOUREOPER(nick)					RPL_PREFIX("381", nick) + " :You are now an IRC operator" + CLRF
 # define RPL_QUIT(nick, senderNick, msg)		RPL_PREFIX("999", nick) + " :" + senderNick + " " + msg + CLRF
 
+//		ERROR
 # define ERR_NOSUCHNICK(target)					RPL_PREFIX("401", "") + " " + target + "  :No such nick/channel" + CLRF
 # define ERR_NOSUCHCHANNEL(target)				RPL_PREFIX("403", "") + " :" + target + " :No such channel" + CLRF
 # define ERR_UNKNOWNCOMMAND(nick, command)		RPL_PREFIX("421", nick) + " :" + command + " :Unknown command" + CLRF
@@ -52,25 +55,26 @@ class	Irc {
 		Irc(Server *server);
 		~Irc(void);
 
-		typedef void (Irc::*CommandFt)(int, Client &);
-
+		typedef void (Irc::*CommandFt)(int const &, Client &);
 		struct commands {
-			std::string name;
-			CommandFt	cmd;
+			std::string const	name;
+			CommandFt			cmd;
 		};
-		static const commands cmdList[];
+		static commands const cmdList[];
 
 		CommandFt	find(std::string const &input) const;
-		void		PASS(int fd, Client &client);
-		void		NICK(int fd, Client &client);
-		void		USER(int fd, Client &client);
-		void		PING(int fd, Client &client);
-		void		PONG(int fd, Client &client);
-		void		OPER(int fd, Client &client);
-		void		QUIT(int fd, Client &client);
-		void		PART(int fd, Client &client);
-		void		MODE(int fd, Client &client);
-		void		JOIN(int fd, Client &client);
+		void		PASS(int const &fd, Client &client);
+		void		NICK(int const &fd, Client &client);
+		void		USER(int const &fd, Client &client);
+		void		PING(int const &fd, Client &client);
+		void		PONG(int const &fd, Client &client);
+		void		OPER(int const &fd, Client &client);
+		void		QUIT(int const &fd, Client &client);
+		void		JOIN(int const &fd, Client &client);
+		void		PART(int const &fd, Client &client);
+		void		MODE(int const &fd, Client &client);
+
+	private:
 
 		Server		*_server;
 };
