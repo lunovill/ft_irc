@@ -42,6 +42,8 @@ std::string	Channel::clientList(std::string const &firstName) const {
 	return clientsNames;
 }
 
+void        Channel::unsetMode(char mode) { _mode.erase(mode); }
+
 /********************************************************************************/
 /* --------------------------------- ACCESSOR --------------------------------- */
 /********************************************************************************/

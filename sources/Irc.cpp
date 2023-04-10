@@ -213,68 +213,148 @@ void	Irc::JOIN(int const &fd, Client &client) {
 	return;
 }
 
+/*
+Mode utilisateur
+Si <target> est un pseudo qui n'existe pas sur le réseau, la valeur numérique ERR_NOSUCHNICK (401) est renvoyée. 
+
+Si <target> est un pseudo différent de celui de l'utilisateur qui a envoyé la commande, la valeur numérique ERR_USERSDONTMATCH (502) est renvoyée.
+
+Si <modestring> n'est pas donné, le numéro RPL_UMODEIS (221) contenant les modes actuels de l'utilisateur cible est renvoyé.
+
+Si <modestring> est donné, les modes fournis seront appliqués et un message MODE contenant les modes modifiés sera envoyé à l'utilisateur. 
+Si un ou plusieurs modes envoyés ne sont pas implémentés sur le serveur, le serveur DOIT appliquer les modes qui sont implémentés, 
+puis envoyer le ERR_UMODEUNKNOWNFLAG (501) en réponse avec le message MODE.
+
+Mode canal
+Si <target> est un canal qui n'existe pas sur le réseau, le message numérique ERR_NOSUCHCHANNEL (403) est renvoyé.
+
+Si <modestring> n'est pas fourni, le message numérique RPL_CHANNELMODEIS (324) est renvoyé. 
+
+Les serveurs PEUVENT choisir de cacher des informations sensibles telles que les clés de canal lors de l'envoi des modes actuels. 
+
+Les serveurs PEUVENT également renvoyer le numéro RPL_CREATIONTIME (329) à la suite de RPL_CHANNELMODEIS.
+
+Si <modestring> est indiqué, l'utilisateur qui envoie la commande DOIT disposer des privilèges appropriés sur le canal cible pour modifier les modes indiqués. 
+
+Si un utilisateur n'a pas les privilèges appropriés pour changer de mode sur le canal cible, le serveur NE DOIT PAS traiter le message, et le code numérique ERR_CHANOPRIVSNEEDED (482) est renvoyé. 
+
+Si l'utilisateur est autorisé à changer de mode sur la cible, les modes fournis seront appliqués en fonction du type de mode (voir ci-dessous).
+
+Pour les modes de type A, B et C, les arguments seront obtenus séquentiellement à partir des <arguments de mode>.
+
+Si un mode de type B ou C n'a pas de paramètre lorsqu'il est défini, le serveur DOIT ignorer ce mode.
+
+Si un mode de type A a été envoyé sans argument, le contenu de la liste DOIT être envoyé à l'utilisateur, à moins qu'il ne contienne des informations sensibles auxquelles l'utilisateur n'est pas autorisé à accéder.
+
+Lorsque le serveur a fini de traiter les modes, une commande MODE est envoyée à tous les membres du canal contenant les changements de mode.
+
+Les serveurs PEUVENT choisir de masquer les informations sensibles lors de l'envoi des changements de mode.
+
+Traduit avec www.DeepL.com/Translator (version gratuite)*/
+
 void	Irc::MODE(int const &fd, Client &client)
 {
-	std::vector<std::string> commands = to_split(client.input);
-	std::string target = commands.size() == 2 ? commands[1] : "";
-	std::string mode = commands.size() == 3 ?  commands[2] : "";
+	std::cout << "-------------------------------" << std::endl;
+	std::cout << "DEBUG COMMADE TOTAL : " << client.input << std::endl;
+	std::string	param = client.input.substr(5, client.input.length());
+	std::vector<std::string> commands = to_split(param);
+	std::string target = commands.size() == 2 ? commands[0] : "";
+	std::string mode = commands.size() >= 1 ?  commands[1] : "";
+	std::vector<Channel *> channel = _server->getChannels();
+	std::vector<Channel *>::iterator it;
 
-	// if (target[0] == '#')
-	// {
-	// 	std::vector<Channel *> channel = _server->getChannel();
-	// 	for (std::vector<Channel *>::iterator it = channel.begin(); it != channel.end(); ++it)
-	// 	{
-	// 		if ((*it)->getName() == target)
-	// 			break ;
-	// 		else if (it == channel.end())
-	// 		{
-	// 			client.output += ERR_NOSUCHCHANNEL(target);
-	// 			return ;
-	// 		}
-	// 	}
-	// }
-	// else
-	// {
-	// 	std::map<int, Client *> clients = _server->getClients();
-	// 	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
-	// 	{
-	// 		if (it->second->nickname == target)
-	// 			break ;
-	// 		if (it == clients.end()) 
-	// 		{
-	// 			client.output += ERR_NOSUCHNICK(target);
-	// 			return ;
-	// 		}
-	// 	}
-	// 	if (target != client.username)
-	// 	{
-	// 		client.output += ERR_USERSDONTMATCH(target);
-	// 		return ;
-	// 	}
-	// }
-	// if (mode.empty())
-	// {
-		if (target[0] == '#')
-			client.output += RPL_CHANNELMODEIS(target, mode);
-		else 
-			client.output += RPL_UMODEIS(client.nickname, mode);
+	if (target.empty())
 		return ;
-	// }
-	// else
-	// {
-	// 		for (int i = 0; i < mode.size(); i++)
-	// 		{
-	// 			if (target[0] != '#' || (mode[i] != '-' && mode[i] != '+' && mode[i] == 'i' && mode[i] != 'o' && mode[i] != 'b'))
-	// 			{
-	// 				client.output += ERR_UMODEUNKNOWNFLAG(target);
-	// 				return ;
-	// 			}
-	// 			else if (target[0] == '#')
-	// 			{
-	// 					// implementer les mode ...
-	// 			}
-	// 		}
-	// }
+	try {
+			if (target[0] == '#') {
+				for (it = channel.begin(); it != channel.end(); ++it)
+					if ((*it)->getName() == target)
+						break ;
+				if (it == channel.end())
+					throw(1) ;
+			}
+			else if (target[0] != '#') {
+				std::map<int, Client *>::iterator it;
+				std::map<int, Client *>	clients = _server->getClients();
+				for (it = clients.begin(); it != clients.end(); ++it)
+				{
+					if (it->second->nickname == target)
+						break ;
+					std::cout << "DEBUG target :" << target << " mode: " << mode << std::endl;
+					std::cout << "-------------------------------" << std::endl;
+
+				}
+				if (it == clients.end())
+					throw(2);
+				else if (target != client.nickname)
+					throw(3);
+			}
+
+			if (mode.empty() && target[0] == '#')
+				throw(4) ; 
+			else if (mode.empty() && target[0] != '#')
+				throw(5) ;
+			else if (target[0] == '#' && strchr(client.mode.c_str(), 'o'))
+					throw(7);
+
+			int len = mode.length();
+			for (int i = 0; i < len; i++)
+			{
+				while (i < len && (mode[i] == '+' || mode[i] == '-'))
+				{
+					char signe = mode[i]; 
+					i++;
+					if (!strchr("+-", mode[i]))
+					{
+						if (target[0] != '#') 
+						{
+							if (signe == '+' && strchr(USER_MODES, mode[i]) && !strchr(client.mode.c_str(), mode[i]))
+								client.mode += mode[i];
+							else if (signe == '-' && strchr(USER_MODES, mode[i]))
+								client.mode.erase(mode[i]);
+							else if (!strchr(USER_MODES, mode[i]))
+								throw(6);
+						}
+						else if (target[0] == '#')
+						{
+							if (signe == '+' && strchr(CHANNEL_MODES, mode[i]) && !strchr((*it)->getMode().c_str(), mode[i]))
+								(*it)->setMode(mode[i]);
+							else if (signe == '-' && strchr(CHANNEL_MODES, mode[i]))
+								(*it)->unsetMode(mode[i]);	
+						}
+					}
+				}
+				i++;
+			}
+			target[0] == '#' ? client.output += SERVER_NAME + std::string("+") + (*it)->getMode() + CLRF : client.output += SERVER_NAME + std::string("+") + client.mode + CLRF;
+			return ;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+	}
+	catch (int e) {
+		switch (e) {
+			case 1:
+				client.output += ERR_NOSUCHCHANNEL(target);
+				break ;
+			case 2:
+				client.output +=  ERR_NOSUCHNICK(target);
+				break ;
+			case 3:
+				client.output += ERR_USERSDONTMATCH(target);
+				break ;
+			case 4:
+				client.output += RPL_CHANNELMODEIS(target, (*it)->getMode());
+				break ;
+			case 5:
+				client.output +=  RPL_UMODEIS(target, "");
+				break ;
+			case 6:
+				client.output += ERR_UMODEUNKNOWNFLAG(target);
+				break ;
+			case 7:
+				client.output += ERR_CHANOPRIVSNEEDED((*it)->getName());
+				break ;
+		}
+	}
+	return ;
 }
 
 /********************************************************************************/

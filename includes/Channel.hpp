@@ -22,6 +22,7 @@ class	Channel {
 		bool		eraseClient(int fd);
 		// Renvoie la liste de tout les nicknames des clients sous la forme d'une seul string
 		std::string clientList(std::string const &firstName) const;
+		void        unsetMode(char mode);
 
 		std::string 	getName(void) const;
 		std::string 	getPass(void) const;
