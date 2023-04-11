@@ -6,7 +6,7 @@
 # include "Client.hpp"
 # include "Channel.hpp"
 
-# define CLRF						"\r\n"
+// # define CLRF						"\r\n"
 # define SERVER_NAME				"ircserv"
 # define SERVER_HOSTNAME			std::string(SERVER_NAME) + ".fr"
 # define SERVER_VERSION				"v4.2"
@@ -29,8 +29,12 @@
 # define RPL_QUIT(nick, senderNick, msg)		RPL_PREFIX("999", nick) + " :" + senderNick + " " + msg + CLRF
 
 //		ERROR
-# define ERR_NOSUCHNICK(target)					RPL_PREFIX("401", "") + " " + target + "  :No such nick/channel" + CLRF
-# define ERR_NOSUCHCHANNEL(target)				RPL_PREFIX("403", "") + " :" + target + " :No such channel" + CLRF
+# define ERR_NOSUCHNICK(nick, errNick)			RPL_PREFIX("401", nick) + " " + errNick + " :No such nick" + CLRF
+# define ERR_NOSUCHCHANNEL(nick, chan)			RPL_PREFIX("403", nick) + " " + chan + " :No such channel" + CLRF
+# define ERR_CANNOTSENDTOCHAN(nick, chan)		RPL_PREFIX("404", nick) + " " + chan + " :Cannot send to channel" + CLRF
+# define ERR_TOOMANYTARGETS(nick)				RPL_PREFIX("407", nick) + " :Too many targets" + CLRF
+# define ERR_NORECIPIENT(nick, command)			RPL_PREFIX("411", nick) + " :No recipient given (" + command + ")" + CLRF 
+# define ERR_NOTEXTTOSEND(nick)					RPL_PREFIX("412", nick) + " :No text to send" + CLRF
 # define ERR_UNKNOWNCOMMAND(nick, command)		RPL_PREFIX("421", nick) + " :" + command + " :Unknown command" + CLRF
 # define ERR_NONICKNAMEGIVEN(nick)				RPL_PREFIX("431", nick) + " :No nickname given" + CLRF
 # define ERR_ERRONEUSNICKNAME(nick, errNick)	RPL_PREFIX("432", nick) + " " + errNick + " :Erroneous nickname" + CLRF
@@ -72,7 +76,9 @@ class	Irc {
 		void		QUIT(int const &fd, Client &client);
 		void		JOIN(int const &fd, Client &client);
 		void		PART(int const &fd, Client &client);
+		void		TOPIC(int const &fd, Client &client);
 		void		MODE(int const &fd, Client &client);
+		void		PRIVMSG(int const &fd, Client &client);
 
 	private:
 

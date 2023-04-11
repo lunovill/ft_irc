@@ -21,10 +21,10 @@ class	Server {
 
 		// Verifie si le nick d'un client est deja utilise
 		bool	findClientNick(std::string const &nickname) const;
-		// send() a tout les client sauf a celui envoiyer en parametre
-		void	sendAll(int const &fd, Client &client, std::string const &message) const;
 		void	addChannel(Channel *channel);
 		void	eraseChannel(Channel *channel);
+		void	sendClient(int const &senderFd, Client const &sender, std::string const &recever, std::string const &message) const;
+		void	sendAll(int const &senderFd, Client const &sender, std::string const &message) const;
 		void	run(void);
 
 		std::string const	getPass() const;

@@ -36,6 +36,7 @@ void Server::_commandRun(std::map<int const, Client *>::iterator &client, std::v
 		Irc::CommandFt cmd = _command.find(client->second->input);
 		if (cmd) (_command.*cmd)(client->first, *client->second);
 		else client->second->output += ERR_UNKNOWNCOMMAND(client->second->nickname, to_split(client->second->input)[0]);
+		// else client->second->output += ERR_UNKNOWNCOMMAND(client->second->nickname, client->second->input);
 	}
 	if (client->second->isRegister()) {
 		client->second->output += RPL_WELCOME(client->second->nickname, client->second->username, client->second->hostname);
@@ -82,25 +83,38 @@ void Server::_dataRecv(void) {
 
 bool	Server::findClientNick(std::string const &nickname) const {
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (it->second->nickname == nickname)
+		if (nickname == it->second->nickname)
 			return true;
 	return false;
 }
 
 void	Server::addChannel(Channel *channel) { _channels.push_back(channel); }
 
-void	Server::sendAll(int const &fd, Client &client, std::string const &message) const { 
+void	Server::eraseChannel(Channel *channel) {
+	delete channel;
+	_channels.erase(std::find(_channels.begin(), _channels.end(), channel));
+	return;
+}
+
+
+void	Server::sendClient(int const &senderFd, Client const &sender, std::string const &recever, std::string const &message) const {
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (fd !=  it->first) {
-			std::string	output = RPL_PREFIX("", it->second->nickname) + " :" + client.nickname + message + CLRF;
-			send(it->first, output.c_str(), output.size(), 0);
+		if (recever == it->second->nickname) {
+			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
+			std::cout << output << std::endl;
+			send(it->first, output.c_str(), output.length(), 0);
+			return;
 		}
 	return;
 }
 
-void	Server::eraseChannel(Channel *channel) {
-	delete channel;
-	_channels.erase(std::find(_channels.begin(), _channels.end(), channel));
+void	Server::sendAll(int const &senderFd, Client const &sender, std::string const &message) const { 
+	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+		if (senderFd !=  it->first) {
+			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
+			std::cout << output << std::endl;
+			send(it->first, output.c_str(), output.length(), 0);
+		}
 	return;
 }
 

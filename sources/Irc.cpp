@@ -11,11 +11,12 @@ Irc::commands const Irc::cmdList[] = {
 	{"QUIT", &Irc::QUIT},
 	{"JOIN", &Irc::JOIN},
 	{"PART", &Irc::PART},
-	{"MODE", &Irc::MODE},
+	{"TOPIC", &Irc::TOPIC},
+	// {"MODE", &Irc::MODE},
+	{"PRIVMSG", &Irc::PRIVMSG},
 	// {"LIST", &LIST},
 	// {"EXIT", &EXIT},
 	// {"PRIVMSG", &PRIVMSG},
-	// {"TOPIC", &TOPIC},
 	// {"KICK", &KICK}
 	{"", NULL}
 };
@@ -133,27 +134,7 @@ void	Irc::OPER(int const &fd, Client &client) {
 }
 
 void	Irc::QUIT(int const &fd, Client &client) {
-	_server->sendAll(fd, client, client.input);	
-	return;
-}
-
-void	Irc::PART(int const &fd, Client &client) {
-	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
-	if (input.size() < 1) {
-		client.output += ERR_NEEDMOREPARAMS(client.nickname, "OPER");
-		return;
-	}
-	Channel *channel = _server->getChannel(input[0]);
-	if (!channel) {
-		client.output += ERR_NOSUCHCHANNEL(input[0]);
-		return;
-	} else if (!channel->findClient(fd)) {
-		client.output += ERR_NOTONCHANNEL(client.nickname, input[0]);
-		return;
-	}
-	if (!channel->eraseClient(fd))
-		_server->eraseChannel(channel);
-	client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc PART ") + input[0] + CLRF;
+	_server->sendAll(fd, client, client.input);
 	return;
 }
 
@@ -187,7 +168,7 @@ void	Irc::JOIN(int const &fd, Client &client) {
 	std::vector<std::string>	names = to_split(input[0], ',');
 	std::vector<std::string>	passwords;
 	if (input.size() > 1) passwords = to_split(input[1], ',');
-	Channel *channel;;
+	Channel *channel;
 	for (unsigned int i = 0; i < names.size(); i++) {
 		channel = _server->getChannel(names[i]);
 		if (!channel) {
@@ -204,7 +185,7 @@ void	Irc::JOIN(int const &fd, Client &client) {
 			break;
 		}
 
-		client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc JOIN ") + input[0] + CLRF;
+		client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc ") + client.output + CLRF;
 		if (!channel->topic.empty())
 			client.output += RPL_TOPIC(client.nickname, names[i], channel->topic);
 		client.output += RPL_NAMREPLY(client.nickname, names[i], channel->clientList(client.nickname));
@@ -213,6 +194,43 @@ void	Irc::JOIN(int const &fd, Client &client) {
 	return;
 }
 
+void	Irc::PART(int const &fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
+	if (input.size() < 1) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "PART");
+		return;
+	}
+	Channel *channel = _server->getChannel(input[0]);
+	if (!channel) {
+		client.output += ERR_NOSUCHCHANNEL(client.nickname, input[0]);
+		return;
+	} else if (!channel->findClient(fd)) {
+		client.output += ERR_NOTONCHANNEL(client.nickname, input[0]);
+		return;
+	}
+	if (!channel->eraseClient(fd))
+		_server->eraseChannel(channel);
+	client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc") + client.input + CLRF;
+	return;
+}
+void	Irc::TOPIC(int const &fd, Client &client) {
+	std::string	input = client.input.substr(6, client.input.length() - 6);
+	if (input.empty()) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "TOPIC");
+		return;
+	}
+	Channel *channel = _server->getChannel(input.substr(0, input.find(' ')));
+	if (!channel) {
+		client.output += ERR_NOSUCHCHANNEL(client.nickname, input.substr(0, input.find(' ')));
+		return;
+	} else if (!channel->findClient(fd)) {
+		client.output += ERR_NOTONCHANNEL(client.nickname, channel->getName());
+		return; 
+	}
+	channel->topic = input.substr(channel->getName().length() + 2, input.length() - (channel->getName().length()) + 2);
+	client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc ") + client.input + CLRF;
+	channel->sendAll(fd, client, client.input);
+}
 /*
 Mode utilisateur
 Si <target> est un pseudo qui n'existe pas sur le réseau, la valeur numérique ERR_NOSUCHNICK (401) est renvoyée. 
@@ -252,109 +270,131 @@ Les serveurs PEUVENT choisir de masquer les informations sensibles lors de l'env
 
 Traduit avec www.DeepL.com/Translator (version gratuite)*/
 
-void	Irc::MODE(int const &fd, Client &client)
-{
-	std::cout << "-------------------------------" << std::endl;
-	std::cout << "DEBUG COMMADE TOTAL : " << client.input << std::endl;
-	std::string	param = client.input.substr(5, client.input.length());
-	std::vector<std::string> commands = to_split(param);
-	std::string target = commands.size() == 2 ? commands[0] : "";
-	std::string mode = commands.size() >= 1 ?  commands[1] : "";
-	std::vector<Channel *> channel = _server->getChannels();
-	std::vector<Channel *>::iterator it;
+// void	Irc::MODE(int const &fd, Client &client)
+// {
+// 	std::cout << "-------------------------------" << std::endl;
+// 	std::cout << "DEBUG COMMADE TOTAL : " << client.input << std::endl;
+// 	std::string	param = client.input.substr(5, client.input.length());
+// 	std::vector<std::string> commands = to_split(param);
+// 	std::string target = commands.size() == 2 ? commands[0] : "";
+// 	std::string mode = commands.size() >= 1 ?  commands[1] : "";
+// 	Channel *channel;
 
-	if (target.empty())
-		return ;
-	try {
-			if (target[0] == '#') {
-				for (it = channel.begin(); it != channel.end(); ++it)
-					if ((*it)->getName() == target)
-						break ;
-				if (it == channel.end())
-					throw(1) ;
-			}
-			else if (target[0] != '#') {
-				std::map<int, Client *>::iterator it;
-				std::map<int, Client *>	clients = _server->getClients();
-				for (it = clients.begin(); it != clients.end(); ++it)
-				{
-					if (it->second->nickname == target)
-						break ;
-					std::cout << "DEBUG target :" << target << " mode: " << mode << std::endl;
-					std::cout << "-------------------------------" << std::endl;
+// 	if (target.empty())
+// 		return ;
+// 	try {
+// 			if (target[0] == '#') {
+// 				channel = _server->getChannel(target);
+// 				if (!channel)
+// 					throw(1) ;
+// 			}
+// 			else if (target[0] != '#') {
+// 				if (!_server->findClientNick(target))	
+// 					throw(2);
+// 				else if (target != client.nickname)
+// 					throw(3);
+// 			}
 
-				}
-				if (it == clients.end())
-					throw(2);
-				else if (target != client.nickname)
-					throw(3);
-			}
+// 			if (mode.empty() && target[0] == '#')
+// 				throw(4) ; 
+// 			else if (mode.empty() && target[0] != '#')
+// 				throw(5) ;
+// 			else if (target[0] == '#' && strchr(client.mode.c_str(), 'o'))
+// 					throw(7);
 
-			if (mode.empty() && target[0] == '#')
-				throw(4) ; 
-			else if (mode.empty() && target[0] != '#')
-				throw(5) ;
-			else if (target[0] == '#' && strchr(client.mode.c_str(), 'o'))
-					throw(7);
+// 			int len = mode.length();
+// 			for (int i = 0; i < len; i++)
+// 			{
+// 				while (i < len && (mode[i] == '+' || mode[i] == '-'))
+// 				{
+// 					char signe = mode[i]; 
+// 					i++;
+// 					if (!strchr("+-", mode[i]))
+// 					{
+// 						if (target[0] != '#') 
+// 						{
+// 							if (signe == '+' && strchr(USER_MODES, mode[i]) && !strchr(client.mode.c_str(), mode[i]))
+// 								client.mode += mode[i];
+// 							else if (signe == '-' && strchr(USER_MODES, mode[i]))
+// 								client.mode.erase(mode[i]);
+// 							else if (!strchr(USER_MODES, mode[i]))
+// 								throw(6);
+// 						}
+// 						else if (target[0] == '#')
+// 						{
+// 							if (signe == '+' && strchr(CHANNEL_MODES, mode[i]) && !strchr(channel->getMode().c_str(), mode[i]))
+// 								channel->setMode(mode[i]);
+// 							else if (signe == '-' && strchr(CHANNEL_MODES, mode[i]))
+// 								channel->eraseMode(mode[i]);	
+// 						}
+// 					}
+// 				}
+// 				i++;
+// 			}
+// 			target[0] == '#' ? client.output += SERVER_NAME + std::string("+") + channel->getMode() + CLRF : client.output += SERVER_NAME + std::string("+") + client.mode + CLRF;
+// 			return ;
+// 	}
+// 	catch (int e) {
+// 		switch (e) {
+// 			case 1:
+// 				client.output += ERR_NOSUCHCHANNEL(target);
+// 				break ;
+// 			case 2:
+// 				client.output +=  ERR_NOSUCHNICK(target);
+// 				break ;
+// 			case 3:
+// 				client.output += ERR_USERSDONTMATCH(target);
+// 				break ;
+// 			case 4:
+// 				client.output += RPL_CHANNELMODEIS(target, channel->getMode());
+// 				break ;
+// 			case 5:
+// 				client.output +=  RPL_UMODEIS(target, "");
+// 				break ;
+// 			case 6:
+// 				client.output += ERR_UMODEUNKNOWNFLAG(target);
+// 				break ;
+// 			case 7:
+// 				client.output += ERR_CHANOPRIVSNEEDED(channel->getName());
+// 				break ;
+// 		}
+// 	}
+// 	return ;
+// }
 
-			int len = mode.length();
-			for (int i = 0; i < len; i++)
-			{
-				while (i < len && (mode[i] == '+' || mode[i] == '-'))
-				{
-					char signe = mode[i]; 
-					i++;
-					if (!strchr("+-", mode[i]))
-					{
-						if (target[0] != '#') 
-						{
-							if (signe == '+' && strchr(USER_MODES, mode[i]) && !strchr(client.mode.c_str(), mode[i]))
-								client.mode += mode[i];
-							else if (signe == '-' && strchr(USER_MODES, mode[i]))
-								client.mode.erase(mode[i]);
-							else if (!strchr(USER_MODES, mode[i]))
-								throw(6);
-						}
-						else if (target[0] == '#')
-						{
-							if (signe == '+' && strchr(CHANNEL_MODES, mode[i]) && !strchr((*it)->getMode().c_str(), mode[i]))
-								(*it)->setMode(mode[i]);
-							else if (signe == '-' && strchr(CHANNEL_MODES, mode[i]))
-								(*it)->unsetMode(mode[i]);	
-						}
-					}
-				}
-				i++;
-			}
-			target[0] == '#' ? client.output += SERVER_NAME + std::string("+") + (*it)->getMode() + CLRF : client.output += SERVER_NAME + std::string("+") + client.mode + CLRF;
-			return ;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+// gerer le @
+
+void	Irc::PRIVMSG(int const &fd, Client &client) {
+	std::string	input = client.input.substr(8, client.input.length() - 8);
+	if (input.empty()) {
+		client.output += ERR_NORECIPIENT(client.nickname, "PRIVMSG");
+		return;
+	} else if (input.find(' ') == std::string::npos) {
+		client.output += ERR_NOTEXTTOSEND(client.nickname);
+		return;
 	}
-	catch (int e) {
-		switch (e) {
-			case 1:
-				client.output += ERR_NOSUCHCHANNEL(target);
-				break ;
-			case 2:
-				client.output +=  ERR_NOSUCHNICK(target);
-				break ;
-			case 3:
-				client.output += ERR_USERSDONTMATCH(target);
-				break ;
-			case 4:
-				client.output += RPL_CHANNELMODEIS(target, (*it)->getMode());
-				break ;
-			case 5:
-				client.output +=  RPL_UMODEIS(target, "");
-				break ;
-			case 6:
-				client.output += ERR_UMODEUNKNOWNFLAG(target);
-				break ;
-			case 7:
-				client.output += ERR_CHANOPRIVSNEEDED((*it)->getName());
-				break ;
+	std::string	recever = input.substr(0, input.find(' '));
+	bool		oper = (recever[0] == '@') ? true : false;
+	
+	if (oper) recever = recever.substr(1);
+	if (recever[0] != '#') {
+		if (recever.find(',') != std::string::npos) {
+			client.output += ERR_TOOMANYTARGETS(client.nickname);
+			return;
+		} else if (!_server->findClientNick(recever)) {
+			client.output += ERR_NOSUCHNICK(client.nickname, recever);
+			return;
 		}
+		_server->sendClient(fd, client, recever, client.input);
+	} else {
+		Channel *channel = _server->getChannel(recever);
+		if (!channel || !channel->findClient(fd)) {
+			client.output += ERR_CANNOTSENDTOCHAN(client.nickname, recever);
+			return;
+		}
+		channel->sendAll(fd, client, client.input);
 	}
-	return ;
-}
+	return;
+} 
 
 /********************************************************************************/

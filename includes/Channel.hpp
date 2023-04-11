@@ -1,8 +1,11 @@
 #pragma once
 
 # include <map>
+# include <sys/socket.h>
 
 # include "Client.hpp"
+
+# define CLRF	"\r\n"
 
 class	Channel {
 
@@ -21,13 +24,14 @@ class	Channel {
 		// Supprime de la liste un client, si c'etait le dernier du channel, elle renvoie false
 		bool		eraseClient(int fd);
 		// Renvoie la liste de tout les nicknames des clients sous la forme d'une seul string
+		void        eraseMode(char const &mode);
+		void		sendAll(int const &senderFd, Client const &sender,std::string const &message) const;
 		std::string clientList(std::string const &firstName) const;
-		void        unsetMode(char mode);
 
 		std::string 	getName(void) const;
 		std::string 	getPass(void) const;
 		std::string 	getMode(void) const;
-		void			setMode(std::string const mode);
+		void			setMode(char const &mode);
 
 
 	private:
