@@ -10,7 +10,7 @@
 # define SERVER_NAME				"ircserv"
 # define SERVER_HOSTNAME			std::string(SERVER_NAME) + ".fr"
 # define SERVER_VERSION				"v4.2"
-# define CHANNEL_MODES				"klnot"
+# define CHANNEL_MODES				"klnt"
 # define USER_MODES					"io"
 # define RPL_PREFIX(code, nick)		std::string(":" + SERVER_HOSTNAME + " " + code + " " + nick)
 
