@@ -34,19 +34,26 @@ bool	Channel::eraseClient(int fd) {
 	return _clients.size() ? true : false;
 }
 
+bool	Channel::findClient(std::string const &nickname) const {
+	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+		if (nickname == it->second->nickname)
+			return true;
+	return false;
+}
+
 void        Channel::eraseMode(char const &mode) { _mode.erase(mode); }
 
 std::string	Channel::clientList(std::string const &firstName) const {
 	std::string clientsNames = firstName;
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (firstName != it->second->nickname)
+		if (firstName != it->second->nickname && it->second->mode.find('i') == std::string::npos)
 			clientsNames += " " + it->second->nickname;
 	return clientsNames;
 }
 
-void	Channel::sendAll(int const &senderFd, Client const &sender, std::string const &message) const { 
+void	Channel::sendAll(int const &senderFd, Client const &sender, std::string const &message, bool const &oper) const { 
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (senderFd !=  it->first) {
+		if (senderFd != it->first && ((oper && it->second->mode.find('o') != std::string::npos) || (!oper))) {
 			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
 			std::cout << output << std::endl;
 			send(it->first, output.c_str(), output.length(), 0);

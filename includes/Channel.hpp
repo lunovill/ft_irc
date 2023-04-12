@@ -19,13 +19,14 @@ class	Channel {
 
 		// Verifie qu'un client appartient a la liste _clients, si il ne le toruve pas il renvoie false
 		bool		findClient(int fd) const;
+		bool		findClient(std::string const &nickname) const;
 		// Verifie la limite (MODE +l) et add le client a la liste _clients, si il ne peut pas il renvoie false
 		bool		addClient(int fd, Client &client);
 		// Supprime de la liste un client, si c'etait le dernier du channel, elle renvoie false
 		bool		eraseClient(int fd);
 		// Renvoie la liste de tout les nicknames des clients sous la forme d'une seul string
 		void        eraseMode(char const &mode);
-		void		sendAll(int const &senderFd, Client const &sender,std::string const &message) const;
+		void		sendAll(int const &senderFd, Client const &sender,std::string const &message, bool const &oper) const;
 		std::string clientList(std::string const &firstName) const;
 
 		std::string 	getName(void) const;

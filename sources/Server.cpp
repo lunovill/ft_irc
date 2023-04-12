@@ -67,11 +67,6 @@ void Server::_dataRecv(void) {
 				it->second->input = std::string(buff);
 				std::vector<std::string> inputs = to_split(buff, '\n');
 				_commandRun(it, inputs);
-				// Ce morceau de code pemet de faire communiquer tout les utilisateurs entre eux
-				// std::cout << "Client " << it->first << " sent: " << buff;
-				// for (std::map<int, Client *>::iterator it2 = _clients.begin(); it2 != _clients.end(); ++it2)
-				// 	if (it2->first != it->first)
-				// 		send(it2->first, buff, bytes_received, 0);
 				++it;
 			}
 		} else {
@@ -81,7 +76,7 @@ void Server::_dataRecv(void) {
 	return;
 }
 
-bool	Server::findClientNick(std::string const &nickname) const {
+bool	Server::findClient(std::string const &nickname) const {
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 		if (nickname == it->second->nickname)
 			return true;
@@ -97,9 +92,9 @@ void	Server::eraseChannel(Channel *channel) {
 }
 
 
-void	Server::sendClient(int const &senderFd, Client const &sender, std::string const &recever, std::string const &message) const {
+void	Server::sendClient(int const &senderFd, Client const &sender, std::string const &recever, std::string const &message, bool const &oper) const {
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (recever == it->second->nickname) {
+		if (recever == it->second->nickname && ((oper && it->second->mode.find('o') != std::string::npos) || (!oper))) {
 			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
 			std::cout << output << std::endl;
 			send(it->first, output.c_str(), output.length(), 0);
@@ -108,12 +103,24 @@ void	Server::sendClient(int const &senderFd, Client const &sender, std::string c
 	return;
 }
 
-void	Server::sendAll(int const &senderFd, Client const &sender, std::string const &message) const { 
+void	Server::sendAll(int const &senderFd, Client const &sender, std::string const &message, bool const &oper) const { 
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (senderFd !=  it->first) {
+		if (senderFd != it->first && ((oper && it->second->mode.find('o') != std::string::npos) || (!oper))) {
 			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
 			std::cout << output << std::endl;
 			send(it->first, output.c_str(), output.length(), 0);
+		}
+	return;
+}
+
+void	Server::desconnectClient(std::string const &nickname) {
+	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		if (nickname == it->second->nickname) {
+			std::cout << "Client " << it->first << " desconnected" << std::endl;
+			close(it->first);
+			delete it->second;
+			_clients.erase(it);
+			return;
 		}
 	return;
 }

@@ -12,12 +12,13 @@ Irc::commands const Irc::cmdList[] = {
 	{"JOIN", &Irc::JOIN},
 	{"PART", &Irc::PART},
 	{"TOPIC", &Irc::TOPIC},
+	{"KICK", &Irc::KICK},
 	// {"MODE", &Irc::MODE},
 	{"PRIVMSG", &Irc::PRIVMSG},
+	{"kill", &Irc::KILL},
+	{"wallops", &Irc::WALLOPS},
 	// {"LIST", &LIST},
 	// {"EXIT", &EXIT},
-	// {"PRIVMSG", &PRIVMSG},
-	// {"KICK", &KICK}
 	{"", NULL}
 };
 
@@ -80,7 +81,7 @@ void	Irc::NICK(int const &fd, Client &client) {
 			client.output += ERR_ERRONEUSNICKNAME(client.nickname, nickname);
 			return;
 		}
-	if (_server->findClientNick(nickname)) {
+	if (_server->findClient(nickname)) {
 			client.output += ERR_NICKNAMEINUSE(client.nickname, nickname);
 			return;
 	}
@@ -130,11 +131,12 @@ void	Irc::OPER(int const &fd, Client &client) {
 	if (client.mode.find('o') == std::string::npos)
 		client.mode += "o";
 	client.output += RPL_YOUREOPER(client.nickname);
+
 	return;
 }
 
 void	Irc::QUIT(int const &fd, Client &client) {
-	_server->sendAll(fd, client, client.input);
+	_server->sendAll(fd, client, client.input, false);
 	return;
 }
 
@@ -180,14 +182,13 @@ void	Irc::JOIN(int const &fd, Client &client) {
 			break;
 		}
 		if (!channel->addClient(fd, client)) { // A verifier quand on fera le mode +l
-
 			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
 			break;
 		}
 
 		client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc ") + client.output + CLRF;
-		if (!channel->topic.empty())
-			client.output += RPL_TOPIC(client.nickname, names[i], channel->topic);
+		if (!channel->topic.empty()) client.output += RPL_TOPIC(client.nickname, names[i], channel->topic);
+		else client.output += RPL_NOTOPIC(client.nickname, names[i]);
 		client.output += RPL_NAMREPLY(client.nickname, names[i], channel->clientList(client.nickname));
 		client.output += RPL_ENDOFNAMES(client.nickname, names[i]);
 	}
@@ -210,7 +211,8 @@ void	Irc::PART(int const &fd, Client &client) {
 	}
 	if (!channel->eraseClient(fd))
 		_server->eraseChannel(channel);
-	client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc") + client.input + CLRF;
+	channel->sendAll(fd, client, client.input, false);
+	client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc PART ") + input[0] + CLRF;
 	return;
 }
 void	Irc::TOPIC(int const &fd, Client &client) {
@@ -226,11 +228,42 @@ void	Irc::TOPIC(int const &fd, Client &client) {
 	} else if (!channel->findClient(fd)) {
 		client.output += ERR_NOTONCHANNEL(client.nickname, channel->getName());
 		return; 
+	} else if (channel->getMode().find('t') != std::string::npos && client.mode.find('o') == std::string::npos) {
+		client.output += ERR_CHANOPRIVSNEEDED(channel->getName());
+		return;
 	}
 	channel->topic = input.substr(channel->getName().length() + 2, input.length() - (channel->getName().length()) + 2);
 	client.output += std::string(":") + client.nickname + std::string("!~u@") + client.hostname + std::string(".irc ") + client.input + CLRF;
-	channel->sendAll(fd, client, client.input);
+	channel->sendAll(fd, client, client.input, false);
 }
+
+void	Irc::KICK(int const &fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
+	if (input.size() < 2) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "KICK");
+		return;
+	}
+	Channel *channel = _server->getChannel(input[0]);
+	if (!channel) {
+		client.output += ERR_NOSUCHCHANNEL(client.nickname, input[0]);
+		return;
+			
+	} else if (client.mode.find("o") == std::string::npos) {
+		client.output += ERR_CHANOPRIVSNEEDED(input[0]);
+		return;
+	} else if (!channel->findClient(fd)) {
+		client.output += ERR_NOTONCHANNEL(client.nickname, input[0]);
+		return; 
+	} else if (!channel->findClient(input[1])) {
+		client.output += ERR_USERNOTINCHANNEL(client.nickname, input[1], input[0]);
+		return;
+	}
+	if (!channel->eraseClient(fd))
+		_server->eraseChannel(channel);
+	_server->sendClient(fd, client, input[1], client.input, false);
+	return;
+}
+
 /*
 Mode utilisateur
 Si <target> est un pseudo qui n'existe pas sur le réseau, la valeur numérique ERR_NOSUCHNICK (401) est renvoyée. 
@@ -289,7 +322,7 @@ Traduit avec www.DeepL.com/Translator (version gratuite)*/
 // 					throw(1) ;
 // 			}
 // 			else if (target[0] != '#') {
-// 				if (!_server->findClientNick(target))	
+// 				if (!_server->findClient(target))	
 // 					throw(2);
 // 				else if (target != client.nickname)
 // 					throw(3);
@@ -381,20 +414,50 @@ void	Irc::PRIVMSG(int const &fd, Client &client) {
 		if (recever.find(',') != std::string::npos) {
 			client.output += ERR_TOOMANYTARGETS(client.nickname);
 			return;
-		} else if (!_server->findClientNick(recever)) {
+		} else if (!_server->findClient(recever)) {
 			client.output += ERR_NOSUCHNICK(client.nickname, recever);
 			return;
 		}
-		_server->sendClient(fd, client, recever, client.input);
+		_server->sendClient(fd, client, recever, client.input, oper);
 	} else {
 		Channel *channel = _server->getChannel(recever);
 		if (!channel || !channel->findClient(fd)) {
 			client.output += ERR_CANNOTSENDTOCHAN(client.nickname, recever);
 			return;
 		}
-		channel->sendAll(fd, client, client.input);
+		channel->sendAll(fd, client, client.input, oper);
 	}
 	return;
-} 
+}
+
+void	Irc::KILL(int const &fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
+	if (input.size() < 1) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "KILL");
+		return;
+	} else if (client.mode.find("o") == std::string::npos) {
+		client.output += ERR_NOPRIVILEGES(client.nickname);
+		return;
+	} else if (!_server->findClient(input[0])) {
+		client.output += ERR_NOSUCHNICK(client.nickname, input[0]);
+		return;
+	}
+	_server->sendClient(fd, client, input[0], client.input, false);
+	_server->desconnectClient(input[0]);
+	return;
+}
+
+void	Irc::WALLOPS(int const &fd, Client &client) {
+	std::vector<std::string>	input = to_split(client.input.substr(8, client.input.length() - 8));
+	if (input.size() < 2) {
+		client.output += ERR_NEEDMOREPARAMS(client.nickname, "WALLOPS");
+		return;
+	} else if (client.mode.find("o") == std::string::npos) {
+		client.output += ERR_NOPRIVILEGES(client.nickname);
+		return;
+	}
+	_server->sendAll(fd, client, client.input, true);
+	return;
+}
 
 /********************************************************************************/
