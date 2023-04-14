@@ -6,7 +6,6 @@
 # include "Client.hpp"
 # include "Channel.hpp"
 
-// # define CLRF						"\r\n"
 # define SERVER_NAME				"ircserv"
 # define SERVER_HOSTNAME			std::string(SERVER_NAME) + ".fr"
 # define SERVER_VERSION				"v4.2"

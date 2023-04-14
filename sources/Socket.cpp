@@ -30,13 +30,7 @@ void	Socket::_initSocket(void) {
 		throw std::runtime_error(error);
 	}
 
-	int flags = fcntl(_fd, F_GETFL, 0);
-	if (flags == -1) {
-		error = std::string("\033[0;2;3mfcntl(): Failed to get socket flags: ") + strerror(errno);
-		throw std::runtime_error(error);
-	}
-
-	if (fcntl(_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+	if (fcntl(_fd, F_SETFL, O_NONBLOCK) == -1) {
 		error = std::string("\033[0;2;3mfcnl(): Failed to set socket noblocking: ") + strerror(errno);
 		throw std::runtime_error(error);
 	}

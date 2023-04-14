@@ -1,6 +1,7 @@
 #pragma once
 
 # include <algorithm>
+# include <csignal>
 # include <string>
 # include <unistd.h>
 # include <vector>
@@ -19,11 +20,10 @@ class	Server {
 		Server(int port, std::string const password);
 		~Server(void);
 
-		// Verifie si le nick d'un client est deja utilise
 		bool	findClient(std::string const &nickname) const;
 		void	addChannel(Channel *channel);
 		void	eraseChannel(Channel *channel);
-		void	sendClient(int const &senderFd, Client const &sender, std::string const &recever, std::string const &message, bool const &oper) const;
+		void	sendClient(Client const &sender, std::string const &recever, std::string const &message, bool const &oper) const;
 		void	sendAll(int const &senderFd, Client const &sender, std::string const &message, bool const &oper) const;
 		void	desconnectClient(std::string const &nickname);
 		void	run(void);
@@ -33,15 +33,16 @@ class	Server {
 
 	private:
 
-		int						_port;
-		std::string const		_password;
-		std::string const		_mode;
-		Socket					_socket;
-		fd_set					_readFds;
-		Irc						_command;
+		std::string const				_password;
+		std::string const				_mode;
+		Socket							_socket;
+		static bool						_running;
+		fd_set							_readFds;
+		Irc								_command;
 		std::map<int const, Client *>	_clients;
-		std::vector<Channel*>	_channels;
+		std::vector<Channel*>			_channels;
 
+		static void	_signalHandler(int signal);
 		void	_acceptClient(int &clientFd) const;
 		void	_commandRun(std::map<int const, Client *>::iterator &client, std::vector<std::string>  &inputs);
 		void	_dataRecv(void);

@@ -6,7 +6,7 @@
 
 Channel::Channel(std::string name) : _name(name), _clientLimit(0) { return; }
 
-Channel::Channel(std::string name, std::string password) : _name(name), _password(password), _clientLimit(0), _mode("k") { return; }
+Channel::Channel(std::string name, std::string password) : _name(name), _password(password), _mode("k"), _clientLimit(0) { return; }
 
 /********************************************************************************/
 /* -------------------------------- DESTRUCTOR -------------------------------- */
@@ -41,7 +41,10 @@ bool	Channel::findClient(std::string const &nickname) const {
 	return false;
 }
 
-void        Channel::eraseMode(char const &mode) { _mode.erase(mode); }
+void        Channel::eraseMode(char const &mode) {
+	if (!_mode.empty() && (_mode.find(mode) != std::string::npos))
+		 _mode.erase(mode); 
+}
 
 std::string	Channel::clientList(std::string const &firstName) const {
 	std::string clientsNames = firstName;

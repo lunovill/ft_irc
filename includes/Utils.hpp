@@ -7,7 +7,6 @@
 # include <sstream>
 # include <iostream>
 
-/* cette fonction est t'une fonction utilitaire qui sert a convertir des int, long, float, double bref tout les type numerique en std::string*/
 template<typename T>
 std::string to_string(T param)
 {

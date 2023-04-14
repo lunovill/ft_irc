@@ -13,12 +13,10 @@ Irc::commands const Irc::cmdList[] = {
 	{"PART", &Irc::PART},
 	{"TOPIC", &Irc::TOPIC},
 	{"KICK", &Irc::KICK},
-	// {"MODE", &Irc::MODE},
+	{"MODE", &Irc::MODE},
 	{"PRIVMSG", &Irc::PRIVMSG},
 	{"kill", &Irc::KILL},
 	{"wallops", &Irc::WALLOPS},
-	// {"LIST", &LIST},
-	// {"EXIT", &EXIT},
 	{"", NULL}
 };
 
@@ -41,17 +39,17 @@ Irc::~Irc(void) { return; }
 
 Irc::CommandFt	Irc::find(std::string const &input) const {
 	for (unsigned int i = 0; !Irc::cmdList[i].name.empty(); ++i) {
-		    std::string cmdName(Irc::cmdList[i].name);
-        if (input.compare(0, cmdName.length(), cmdName) == 0 && (input[cmdName.length()] == ' ' || input[cmdName.length()] == '\r' || input[cmdName.length()] == '\n')) {
+			std::string cmdName(Irc::cmdList[i].name);
+		if (input.compare(0, cmdName.length(), cmdName) == 0 && (input[cmdName.length()] == ' ' || input[cmdName.length()] == '\r' || input[cmdName.length()] == '\n')) {
 			std::cout << "Commande server : "<< cmdName << " ---- Command Client : " << input << CLRF;
-            return Irc::cmdList[i].cmd;
-        }
-    }
+			return Irc::cmdList[i].cmd;
+		}
+	}
 	return NULL;
 };
 
-void Irc::PASS(int const &fd, Client &client)
-{
+void Irc::PASS(int const &fd, Client &client) {
+	(void)fd;
 	if (client.cmdRegister[3] == true) {
 		client.output += ERR_ALREADYREGISTRED(client.nickname);
 		return;
@@ -71,6 +69,7 @@ void Irc::PASS(int const &fd, Client &client)
 }
 
 void	Irc::NICK(int const &fd, Client &client) {
+	(void)fd;
 	std::string	nickname = client.input.substr(5, client.input.length() - 5);
 	if (nickname.empty()) {
 		client.output += ERR_NONICKNAMEGIVEN(client.nickname);
@@ -91,8 +90,8 @@ void	Irc::NICK(int const &fd, Client &client) {
 	return;
 }
 
-void Irc::USER(int const &fd, Client &client)
-{
+void Irc::USER(int const &fd, Client &client) {
+	(void)fd;
 	if (client.cmdRegister[3] == true) {
 		client.output += ERR_ALREADYREGISTRED(client.nickname);
 		return;
@@ -113,6 +112,7 @@ void Irc::USER(int const &fd, Client &client)
 }
 
 void	Irc::OPER(int const &fd, Client &client) {
+	(void)fd;
 	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
 	if (input.size() < 2) {
 		client.output += ERR_NEEDMOREPARAMS(client.nickname, "OPER");
@@ -140,20 +140,15 @@ void	Irc::QUIT(int const &fd, Client &client) {
 	return;
 }
 
-/*  La commande ping et formater comme suit: 
-	PING: :1872226306
-	ce nombre et token genere par le serveur la premier chose que de faire notre server c'est ping le client pour tester la connexion.
-
-*/
-void		Irc::PING(int const &fd, Client &client)
-{
+void		Irc::PING(int const &fd, Client &client) {
+	(void)fd;
 	std::srand(std::time(0));
 	std::string token = to_string(std::rand() % 9000000000 + 1000000000);
 	client.output += "PING :" + token + CLRF;
 }
 
-void		Irc::PONG(int const &fd, Client &client)
-{
+void		Irc::PONG(int const &fd, Client &client) {
+	(void)fd;
 	std::vector<std::string> token =  to_split(client.input);
 	if (token.size() != 2)
 		return ;
@@ -177,11 +172,11 @@ void	Irc::JOIN(int const &fd, Client &client) {
 			if (input.size() == 2 && i < passwords.size()) channel = new Channel(names[i], passwords[i]);
 			else channel = new Channel(names[i]);
 			_server->addChannel(channel);
-    	} else if (channel->getMode().find('k') != std::string::npos && (i >= passwords.size()) || (i < passwords.size() && channel->getPass() != passwords[i])) {
+		} else if (channel->getMode().find('k') != std::string::npos && (i >= passwords.size() || (i < passwords.size() && channel->getPass() != passwords[i]))) {
 			client.output += ERR_BADCHANNELKEY(client.nickname, names[i]);
 			break;
 		}
-		if (!channel->addClient(fd, client)) { // A verifier quand on fera le mode +l
+		if (!channel->addClient(fd, client)) {
 			client.output += ERR_CHANNELISFULL(client.nickname, names[i]);
 			break;
 		}
@@ -260,142 +255,71 @@ void	Irc::KICK(int const &fd, Client &client) {
 	}
 	if (!channel->eraseClient(fd))
 		_server->eraseChannel(channel);
-	_server->sendClient(fd, client, input[1], client.input, false);
+	_server->sendClient(client, input[1], client.input, false);
 	return;
 }
 
-/*
-Mode utilisateur
-Si <target> est un pseudo qui n'existe pas sur le réseau, la valeur numérique ERR_NOSUCHNICK (401) est renvoyée. 
+void	Irc::MODE(int const &fd, Client &client) {
+	(void)fd;
+	std::string	param = client.input.substr(5, client.input.length());
+	std::vector<std::string> commands = to_split(param);
+	std::string target = commands.size() >= 1  ? commands[0] : "";
+	std::string mode = commands.size() == 2 ?  commands[1] : "";
+	Channel *channel;
 
-Si <target> est un pseudo différent de celui de l'utilisateur qui a envoyé la commande, la valeur numérique ERR_USERSDONTMATCH (502) est renvoyée.
+ 	if (target.empty()) {
+ 		return ;
+	} else if (target[0] == '#') {
+		channel = _server->getChannel(target);
+		if (!channel) {
+			client.output += ERR_NOSUCHCHANNEL("MODE", target);
+			return ;
+		}
+	} else if (target[0] != '#') {
+		if (!_server->findClient(target)) {
+			client.output +=  ERR_NOSUCHNICK(target, "");
+			return ;
+		} else if (target != client.nickname) {
+			client.output += ERR_USERSDONTMATCH(target);
+			return ;
+		}
+	}
+	if (mode.empty() && target[0] == '#') {
+		client.output += RPL_CHANNELMODEIS(target, channel->getMode());
+		return ;
+	} else if (mode.empty() && target[0] != '#') {
+		client.output +=  RPL_UMODEIS(target, "");
+		return ;
+	} else if (target[0] == '#' && strchr(client.mode.c_str(), 'o')) {
+		client.output += ERR_CHANOPRIVSNEEDED(channel->getName());
+		return ;
+	}
 
-Si <modestring> n'est pas donné, le numéro RPL_UMODEIS (221) contenant les modes actuels de l'utilisateur cible est renvoyé.
-
-Si <modestring> est donné, les modes fournis seront appliqués et un message MODE contenant les modes modifiés sera envoyé à l'utilisateur. 
-Si un ou plusieurs modes envoyés ne sont pas implémentés sur le serveur, le serveur DOIT appliquer les modes qui sont implémentés, 
-puis envoyer le ERR_UMODEUNKNOWNFLAG (501) en réponse avec le message MODE.
-
-Mode canal
-Si <target> est un canal qui n'existe pas sur le réseau, le message numérique ERR_NOSUCHCHANNEL (403) est renvoyé.
-
-Si <modestring> n'est pas fourni, le message numérique RPL_CHANNELMODEIS (324) est renvoyé. 
-
-Les serveurs PEUVENT choisir de cacher des informations sensibles telles que les clés de canal lors de l'envoi des modes actuels. 
-
-Les serveurs PEUVENT également renvoyer le numéro RPL_CREATIONTIME (329) à la suite de RPL_CHANNELMODEIS.
-
-Si <modestring> est indiqué, l'utilisateur qui envoie la commande DOIT disposer des privilèges appropriés sur le canal cible pour modifier les modes indiqués. 
-
-Si un utilisateur n'a pas les privilèges appropriés pour changer de mode sur le canal cible, le serveur NE DOIT PAS traiter le message, et le code numérique ERR_CHANOPRIVSNEEDED (482) est renvoyé. 
-
-Si l'utilisateur est autorisé à changer de mode sur la cible, les modes fournis seront appliqués en fonction du type de mode (voir ci-dessous).
-
-Pour les modes de type A, B et C, les arguments seront obtenus séquentiellement à partir des <arguments de mode>.
-
-Si un mode de type B ou C n'a pas de paramètre lorsqu'il est défini, le serveur DOIT ignorer ce mode.
-
-Si un mode de type A a été envoyé sans argument, le contenu de la liste DOIT être envoyé à l'utilisateur, à moins qu'il ne contienne des informations sensibles auxquelles l'utilisateur n'est pas autorisé à accéder.
-
-Lorsque le serveur a fini de traiter les modes, une commande MODE est envoyée à tous les membres du canal contenant les changements de mode.
-
-Les serveurs PEUVENT choisir de masquer les informations sensibles lors de l'envoi des changements de mode.
-
-Traduit avec www.DeepL.com/Translator (version gratuite)*/
-
-// void	Irc::MODE(int const &fd, Client &client)
-// {
-// 	std::cout << "-------------------------------" << std::endl;
-// 	std::cout << "DEBUG COMMADE TOTAL : " << client.input << std::endl;
-// 	std::string	param = client.input.substr(5, client.input.length());
-// 	std::vector<std::string> commands = to_split(param);
-// 	std::string target = commands.size() == 2 ? commands[0] : "";
-// 	std::string mode = commands.size() >= 1 ?  commands[1] : "";
-// 	Channel *channel;
-
-// 	if (target.empty())
-// 		return ;
-// 	try {
-// 			if (target[0] == '#') {
-// 				channel = _server->getChannel(target);
-// 				if (!channel)
-// 					throw(1) ;
-// 			}
-// 			else if (target[0] != '#') {
-// 				if (!_server->findClient(target))	
-// 					throw(2);
-// 				else if (target != client.nickname)
-// 					throw(3);
-// 			}
-
-// 			if (mode.empty() && target[0] == '#')
-// 				throw(4) ; 
-// 			else if (mode.empty() && target[0] != '#')
-// 				throw(5) ;
-// 			else if (target[0] == '#' && strchr(client.mode.c_str(), 'o'))
-// 					throw(7);
-
-// 			int len = mode.length();
-// 			for (int i = 0; i < len; i++)
-// 			{
-// 				while (i < len && (mode[i] == '+' || mode[i] == '-'))
-// 				{
-// 					char signe = mode[i]; 
-// 					i++;
-// 					if (!strchr("+-", mode[i]))
-// 					{
-// 						if (target[0] != '#') 
-// 						{
-// 							if (signe == '+' && strchr(USER_MODES, mode[i]) && !strchr(client.mode.c_str(), mode[i]))
-// 								client.mode += mode[i];
-// 							else if (signe == '-' && strchr(USER_MODES, mode[i]))
-// 								client.mode.erase(mode[i]);
-// 							else if (!strchr(USER_MODES, mode[i]))
-// 								throw(6);
-// 						}
-// 						else if (target[0] == '#')
-// 						{
-// 							if (signe == '+' && strchr(CHANNEL_MODES, mode[i]) && !strchr(channel->getMode().c_str(), mode[i]))
-// 								channel->setMode(mode[i]);
-// 							else if (signe == '-' && strchr(CHANNEL_MODES, mode[i]))
-// 								channel->eraseMode(mode[i]);	
-// 						}
-// 					}
-// 				}
-// 				i++;
-// 			}
-// 			target[0] == '#' ? client.output += SERVER_NAME + std::string("+") + channel->getMode() + CLRF : client.output += SERVER_NAME + std::string("+") + client.mode + CLRF;
-// 			return ;
-// 	}
-// 	catch (int e) {
-// 		switch (e) {
-// 			case 1:
-// 				client.output += ERR_NOSUCHCHANNEL(target);
-// 				break ;
-// 			case 2:
-// 				client.output +=  ERR_NOSUCHNICK(target);
-// 				break ;
-// 			case 3:
-// 				client.output += ERR_USERSDONTMATCH(target);
-// 				break ;
-// 			case 4:
-// 				client.output += RPL_CHANNELMODEIS(target, channel->getMode());
-// 				break ;
-// 			case 5:
-// 				client.output +=  RPL_UMODEIS(target, "");
-// 				break ;
-// 			case 6:
-// 				client.output += ERR_UMODEUNKNOWNFLAG(target);
-// 				break ;
-// 			case 7:
-// 				client.output += ERR_CHANOPRIVSNEEDED(channel->getName());
-// 				break ;
-// 		}
-// 	}
-// 	return ;
-// }
-
-// gerer le @
+	char signe;
+	int len = mode.length();
+	for (int i = 0; i < len; i++)
+	{
+		if (mode[i] == '+' || mode[i] == '-') {
+			signe = mode[i];
+		} else if (!strchr("+-", mode[i])) {
+			if (target[0] != '#') {
+				if (signe == '+' && strchr(USER_MODES, mode[i]) && !strchr(client.mode.c_str(), mode[i])) {
+					client.mode += mode[i];
+				} else if (signe == '-' && strchr(USER_MODES, mode[i])) {
+					if (!client.mode.empty() && client.mode.find(mode) != std::string::npos) client.mode.erase(mode[i]);
+				} else if (!strchr(USER_MODES, mode[i])) {
+					client.output += ERR_UMODEUNKNOWNFLAG(target);
+					return ;
+				}
+			} else if (target[0] == '#') {
+				if (signe == '+' && strchr(CHANNEL_MODES, mode[i]) && !strchr(channel->getMode().c_str(), mode[i])) channel->setMode(mode[i]);
+				else if (signe == '-' && strchr(CHANNEL_MODES, mode[i])) channel->eraseMode(mode[i]);	
+			}
+		}
+ 	}
+	(target[0] == '#') ? client.output += SERVER_NAME + std::string(" ") + std::string("+") + channel->getMode() + CLRF : client.output += SERVER_NAME + std::string(" ") + std::string("+") + client.mode + CLRF;
+ 	return ;
+}
 
 void	Irc::PRIVMSG(int const &fd, Client &client) {
 	std::string	input = client.input.substr(8, client.input.length() - 8);
@@ -418,10 +342,10 @@ void	Irc::PRIVMSG(int const &fd, Client &client) {
 			client.output += ERR_NOSUCHNICK(client.nickname, recever);
 			return;
 		}
-		_server->sendClient(fd, client, recever, client.input, oper);
+		_server->sendClient(client, recever, client.input, oper);
 	} else {
 		Channel *channel = _server->getChannel(recever);
-		if (!channel || !channel->findClient(fd)) {
+		if (!channel || (channel->getMode().find('n') != std::string::npos && !channel->findClient(fd))) {
 			client.output += ERR_CANNOTSENDTOCHAN(client.nickname, recever);
 			return;
 		}
@@ -431,6 +355,7 @@ void	Irc::PRIVMSG(int const &fd, Client &client) {
 }
 
 void	Irc::KILL(int const &fd, Client &client) {
+	(void)fd;
 	std::vector<std::string>	input = to_split(client.input.substr(5, client.input.length() - 5));
 	if (input.size() < 1) {
 		client.output += ERR_NEEDMOREPARAMS(client.nickname, "KILL");
@@ -442,7 +367,7 @@ void	Irc::KILL(int const &fd, Client &client) {
 		client.output += ERR_NOSUCHNICK(client.nickname, input[0]);
 		return;
 	}
-	_server->sendClient(fd, client, input[0], client.input, false);
+	_server->sendClient(client, input[0], client.input, false);
 	_server->desconnectClient(input[0]);
 	return;
 }
