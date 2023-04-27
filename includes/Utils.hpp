@@ -17,6 +17,15 @@ std::string to_string(T param)
 }
 
 template<typename T>
+size_t to_sizeT(T str)
+{
+	std::istringstream iss(str);
+    size_t size;
+    iss >> size;
+	return size;
+}
+
+template<typename T>
 std::vector<std::string> to_split(T msg, char c = ' ')
 {
 

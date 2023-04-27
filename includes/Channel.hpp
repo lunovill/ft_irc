@@ -29,12 +29,14 @@ class	Channel {
 		std::string 	getPass(void) const;
 		std::string 	getMode(void) const;
 		void			setMode(char const &mode);
+		void        	setPass(std::string &password);
+		void        	setClientLimit(std::string &clientLimit);
 
 
 	private:
 
 		std::string const		_name;
-		std::string	const		_password;
+		std::string				_password;
 		std::string				_mode;
 		size_t					_clientLimit;
 		std::map<int, Client *> _clients;

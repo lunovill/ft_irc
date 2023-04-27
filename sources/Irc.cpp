@@ -5,6 +5,7 @@ Irc::commands const Irc::cmdList[] = {
 	{"PASS", &Irc::PASS},
 	{"NICK", &Irc::NICK},
 	{"USER", &Irc::USER},
+	{"userhost", &Irc::USER},
 	{"PING", &Irc::PONG},
 	{"PONG", &Irc::PING},
 	{"OPER", &Irc::OPER},
@@ -15,6 +16,7 @@ Irc::commands const Irc::cmdList[] = {
 	{"KICK", &Irc::KICK},
 	{"MODE", &Irc::MODE},
 	{"PRIVMSG", &Irc::PRIVMSG},
+	{"NOTICE", &Irc::NOTICE},
 	{"kill", &Irc::KILL},
 	{"wallops", &Irc::WALLOPS},
 	{"", NULL}
@@ -106,7 +108,7 @@ void Irc::USER(int const &fd, Client &client) {
 		client.nickname = input[0];
 	client.username = input[1];
 	client.hostname = input[2];
-	client.realname = input[3] + " " + input[4];
+	client.realname = input[3].substr(1) + " " + input[4];
 	if (client.cmdRegister[2] != true)
 		client.cmdRegister[2] = true;
 }
@@ -120,6 +122,7 @@ void	Irc::OPER(int const &fd, Client &client) {
 	}
 	std::string	username = input[0];
 	std::string	password = input[1];
+
 	if (password != "carotte") {
 		client.output += ERR_PASSWDMISMATCH(client.nickname);
 		return;
@@ -264,7 +267,10 @@ void	Irc::MODE(int const &fd, Client &client) {
 	std::string	param = client.input.substr(5, client.input.length());
 	std::vector<std::string> commands = to_split(param);
 	std::string target = commands.size() >= 1  ? commands[0] : "";
-	std::string mode = commands.size() == 2 ?  commands[1] : "";
+	std::string mode = commands.size() >= 2 ?  commands[1] : "";
+	std::vector<std::string> set;
+	if (commands.size() >= 3)
+		set = to_split(commands[2], ',');
 	Channel *channel;
 
  	if (target.empty()) {
@@ -276,7 +282,7 @@ void	Irc::MODE(int const &fd, Client &client) {
 			return ;
 		}
 	} else if (target[0] != '#') {
-		if (!_server->findClient(target)) {
+		if (!_server->findClient(target) || client.nickname != target) {
 			client.output +=  ERR_NOSUCHNICK(target, "");
 			return ;
 		} else if (target != client.nickname) {
@@ -290,29 +296,51 @@ void	Irc::MODE(int const &fd, Client &client) {
 	} else if (mode.empty() && target[0] != '#') {
 		client.output +=  RPL_UMODEIS(target, "");
 		return ;
-	} else if (target[0] == '#' && strchr(client.mode.c_str(), 'o')) {
+	} else if (target[0] == '#' && !strchr(client.mode.c_str(), 'o')) {
 		client.output += ERR_CHANOPRIVSNEEDED(channel->getName());
 		return ;
 	}
 
 	char signe;
-	int len = mode.length();
-	for (int i = 0; i < len; i++)
-	{
+	unsigned int j =-1;
+	for (unsigned int i = 0; i < mode.length(); ++i)
+	{	
+		if (mode[i] == 'k' || mode[i] == 'l' || mode[i] == 'o')
+			j++;	
 		if (mode[i] == '+' || mode[i] == '-') {
 			signe = mode[i];
 		} else if (!strchr("+-", mode[i])) {
 			if (target[0] != '#') {
 				if (signe == '+' && strchr(USER_MODES, mode[i]) && !strchr(client.mode.c_str(), mode[i])) {
-					client.mode += mode[i];
+					if ((mode[i] == 'o' && !set.empty()) && set.size() > j) {
+						client.input = "OPER " + target + " " + set[j];
+						this->OPER(fd, client);
+					}
+					else if (mode[i] != 'o')
+						client.mode += mode[i];
 				} else if (signe == '-' && strchr(USER_MODES, mode[i])) {
-					if (!client.mode.empty() && client.mode.find(mode) != std::string::npos) client.mode.erase(mode[i]);
+					if (!client.mode.empty() && client.mode.find(mode[i]) != std::string::npos)
+						client.mode.erase(client.mode.find(mode[i]), 1);
 				} else if (!strchr(USER_MODES, mode[i])) {
 					client.output += ERR_UMODEUNKNOWNFLAG(target);
 					return ;
 				}
 			} else if (target[0] == '#') {
-				if (signe == '+' && strchr(CHANNEL_MODES, mode[i]) && !strchr(channel->getMode().c_str(), mode[i])) channel->setMode(mode[i]);
+				if (signe == '+' && strchr(CHANNEL_MODES, mode[i]) && !strchr(channel->getMode().c_str(), mode[i]))
+				{
+					if ((mode[i] == 'k' && !set.empty()) && set.size() > j) {
+						channel->setMode(mode[i]);
+						channel->setPass(set[j]);
+					} else if ((mode[i] == 'l' && !set.empty()) && set.size() > j) {
+						for (const char *c = set[j].c_str(); *c != '\0'; ++c) {
+							if (!isdigit(*c)) {
+								continue;
+							}
+						}
+						channel->setClientLimit(set[j]);
+						channel->setMode(mode[i]);
+					}
+				}
 				else if (signe == '-' && strchr(CHANNEL_MODES, mode[i])) channel->eraseMode(mode[i]);	
 			}
 		}
@@ -385,4 +413,30 @@ void	Irc::WALLOPS(int const &fd, Client &client) {
 	return;
 }
 
-/********************************************************************************/
+void	Irc::NOTICE(int const &fd, Client &client) {
+	std::string	input = client.input.substr(7, client.input.length() - 7);
+	if (input.empty()) {
+		return;
+	} else if (input.find(' ') == std::string::npos) {
+		return;
+	}
+	std::string	recever = input.substr(0, input.find(' '));
+	bool		oper = (recever[0] == '@') ? true : false;
+	
+	if (oper) recever = recever.substr(1);
+	if (recever[0] != '#') {
+		if (recever.find(',') != std::string::npos) {
+			return;
+		} else if (!_server->findClient(recever)) {
+			return;
+		}
+		_server->sendClient(client, recever, client.input, oper);
+	} else {
+		Channel *channel = _server->getChannel(recever);
+		if (!channel || (channel->getMode().find('n') != std::string::npos && !channel->findClient(fd))) {
+			return;
+		}
+		channel->sendAll(fd, client, client.input, oper);
+	}
+	return;
+}

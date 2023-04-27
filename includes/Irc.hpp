@@ -82,6 +82,7 @@ class	Irc {
 		void		KICK(int const &fd, Client &client);
 		void		MODE(int const &fd, Client &client);
 		void		PRIVMSG(int const &fd, Client &client);
+		void		NOTICE(int const &fd, Client &client);
 		void		KILL(int const &fd, Client &client);
 		void		WALLOPS(int const &fd, Client &client);
 

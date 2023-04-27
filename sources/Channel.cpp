@@ -1,4 +1,5 @@
 #include "Channel.hpp" 
+#include "Utils.hpp" 
 
 /********************************************************************************/
 /* ------------------------------- CONSTRUCTOR -------------------------------- */
@@ -43,7 +44,7 @@ bool	Channel::findClient(std::string const &nickname) const {
 
 void        Channel::eraseMode(char const &mode) {
 	if (!_mode.empty() && (_mode.find(mode) != std::string::npos))
-		 _mode.erase(mode); 
+		 _mode.erase(_mode.find(mode), 1); 
 }
 
 std::string	Channel::clientList(std::string const &firstName) const {
@@ -75,5 +76,9 @@ std::string Channel::getPass(void) const { return _password; }
 std::string Channel::getMode(void) const { return _mode; }
 
 void        Channel::setMode(char const &mode) { _mode += mode; }
+
+void        Channel::setPass(std::string &password) { _password = password; }
+
+void        Channel::setClientLimit(std::string &clientLimit) { _clientLimit = to_sizeT(clientLimit); }
 
 /********************************************************************************/
