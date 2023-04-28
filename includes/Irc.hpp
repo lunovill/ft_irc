@@ -1,6 +1,7 @@
 #pragma once
 
 # include <string>
+# include <fstream>
 
 # include "Utils.hpp"
 # include "Client.hpp"
@@ -85,8 +86,11 @@ class	Irc {
 		void		NOTICE(int const &fd, Client &client);
 		void		KILL(int const &fd, Client &client);
 		void		WALLOPS(int const &fd, Client &client);
+		void		bot(Client &client, std::string const &set);
 
 	private:
 
-		Server		*_server;
+		Server						*_server;
+		std::vector<std::string>	_jokes;
+		std::vector<std::string>	_infos;
 };
