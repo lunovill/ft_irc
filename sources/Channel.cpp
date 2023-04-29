@@ -59,7 +59,6 @@ void	Channel::sendAll(int const &senderFd, Client const &sender, std::string con
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 		if (senderFd != it->first && ((oper && it->second->mode.find('o') != std::string::npos) || (!oper))) {
 			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
-			std::cout << output << std::endl;
 			send(it->first, output.c_str(), output.length(), 0);
 		}
 	return;

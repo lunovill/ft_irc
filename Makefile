@@ -2,11 +2,6 @@
 #								SOURCES											#
  #=============================================================================#
 
-UTLS_FLS = ansi\
-
-UTLS_DIR = utils
-UTLS = $(addsuffix .cpp, $(UTLS_FLS))
-
 SRCS_FLS = Channel\
 			Client\
 			Irc\
@@ -23,10 +18,8 @@ SRCS = $(addsuffix .cpp, $(SRCS_FLS))
 
 OBJS_DIR = objets
 OBJS = $(SRCS:%.cpp=$(OBJS_DIR)/%.o)
-UTLS_OBJ = $(UTLS:%.cpp=$(OBJS_DIR)/%.o)
 
 DEPS = $(SRCS:%.cpp=$(OBJS_DIR)/%.d)
-UTLS_DEP = $(UTLS:%.cpp=$(OBJS_DIR)/%.d)
 
  #=============================================================================#
 #									COMPILATION									#
@@ -45,10 +38,10 @@ NAME = ircserv
 
 all : $(NAME)
 
-$(NAME) : $(OBJS_DIR) $(UTLS_OBJ) $(OBJS)
+$(NAME) : $(OBJS_DIR) $(OBJS)
 	@echo "\033[0;1mCompilation objets : \033[1;5;32mSUCCESS\033[0m\n"
 	@echo "Compiling excutable :\033[35m"
-	$(CC) $(CFLAGS) $(CIFLAGS) $(UTLS_OBJ) $(OBJS) -o $(NAME)
+	$(CC) $(CFLAGS) $(CIFLAGS) $(OBJS) -o $(NAME)
 	@echo "\033[0;1mCompilation excutables : \033[1;5;32mSUCCESS\033[0m\n"
 
 $(OBJS_DIR) :
@@ -57,9 +50,6 @@ $(OBJS_DIR) :
 	@echo "\033[0mCompiling objet :\033[36m"
 
 $(OBJS) : $(OBJS_DIR)/%.o : $(SRCS_DIR)/%.cpp
-	$(CC) $(CFLAGS) $(CIFLAGS) $(CDFLAGS) -c $< -o $@
-
-$(UTLS_OBJ) : $(OBJS_DIR)/%.o : $(UTLS_DIR)/%.cpp
 	$(CC) $(CFLAGS) $(CIFLAGS) $(CDFLAGS) -c $< -o $@
 
 clean :
@@ -72,7 +62,7 @@ fclean : clean
 
 re : fclean all
 
--include $(DEPS) $(UTLS_DEP)
+-include $(DEPS)
 
 .PHONY: all clean fclean re
 

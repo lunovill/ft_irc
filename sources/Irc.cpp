@@ -43,10 +43,7 @@ Irc::CommandFt Irc::find(std::string const &input) const
 	{
 		std::string cmdName(Irc::cmdList[i].name);
 		if (input.compare(0, cmdName.length(), cmdName) == 0 && (input[cmdName.length()] == ' ' || input[cmdName.length()] == '\r' || input[cmdName.length()] == '\n'))
-		{
-			std::cout << "Commande server : " << cmdName << " ---- Command Client : " << input << CLRF;
 			return Irc::cmdList[i].cmd;
-		}
 	}
 	return NULL;
 };

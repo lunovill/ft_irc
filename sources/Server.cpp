@@ -56,7 +56,6 @@ void Server::_commandRun(std::map<int const, Client *>::iterator &client, std::v
 
 	}
 	send(client->first, client->second->output.c_str(), client->second->output.length(), 0);
-	std::cout << client->second->output << std::endl;
 	client->second->output.erase();
 }
 
@@ -105,7 +104,6 @@ void	Server::sendClient( Client const &sender, std::string const &recever, std::
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 		if (recever == it->second->nickname && ((oper && it->second->mode.find('o') != std::string::npos) || (!oper))) {
 			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
-			std::cout << output << std::endl;
 			send(it->first, output.c_str(), output.length(), 0);
 			return;
 		}
@@ -116,7 +114,6 @@ void	Server::sendAll(int const &senderFd, Client const &sender, std::string cons
 	for (std::map<int, Client *>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 		if (senderFd != it->first && ((oper && it->second->mode.find('o') != std::string::npos) || (!oper))) {
 			std::string output = std::string(":") + sender.nickname + std::string("!~u@") + sender.hostname + std::string(".irc ") + message + CLRF;
-			std::cout << output << std::endl;
 			send(it->first, output.c_str(), output.length(), 0);
 		}
 	return;
